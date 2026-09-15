@@ -1,0 +1,1242 @@
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f4f8fb 0%, #edf4f7 100%);
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2b6cb0, #3b82f6);
+  box-shadow: 0 14px 28px rgba(59, 130, 246, 0.25);
+}
+
+.brand-mark.small {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  font-size: 0.72rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #5a7385;
+  margin: 0 0 6px;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #1f2d3d;
+}
+
+.menu-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #d8e1ea;
+  background: #fff;
+  color: #1f2d3d;
+  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu-button:hover {
+  background: #f2f6fa;
+  border-color: #bdd7ff;
+}
+
+.nav-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 27, 40, 0.35);
+  display: flex;
+  z-index: 40;
+}
+
+.nav-drawer {
+  width: 300px;
+  max-width: 82vw;
+  height: 100%;
+  background: #f8fafc;
+  border-right: 1px solid #dfe7ee;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 12px 0 32px rgba(15, 27, 40, 0.18);
+  animation: drawer-in 0.18s ease-out;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-16px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.nav-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.nav-drawer-header .eyebrow {
+  margin: 0 0 4px;
+}
+
+.nav-drawer-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5a7385;
+}
+
+.drawer-close {
+  border: none;
+  background: transparent;
+  color: #5a7385;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.drawer-close:hover {
+  color: #1f2d3d;
+}
+
+.page-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #1f2d3d;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-button:hover,
+.nav-button.active {
+  background: #e9f2ff;
+  border-color: #bdd7ff;
+}
+
+.nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7aa2d8;
+  display: inline-block;
+}
+
+.app-main {
+  flex: 1;
+  padding: 20px 28px 28px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 28px;
+  border-bottom: 1px solid #dfe7ee;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.page-heading {
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #dfe7ee;
+}
+
+.page-heading h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button {
+  border: none;
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.ghost-button:hover {
+  transform: translateY(-1px);
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #1976d2, #2f80ed);
+  color: white;
+  padding: 10px 16px;
+  box-shadow: 0 10px 18px rgba(47, 128, 237, 0.24);
+}
+
+.secondary-button,
+.ghost-button {
+  background: white;
+  color: #1f2d3d;
+  border: 1px solid #d8e1ea;
+  padding: 10px 16px;
+}
+
+.planning-layout {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(340px, 42%) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 20px;
+  min-height: 760px;
+}
+
+@media (max-width: 840px) {
+  .planning-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lesson-sidebar,
+.workspace-canvas,
+.report-panel,
+.questions-panel,
+.dashboard-task-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #dfe7ee;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(27, 40, 52, 0.04);
+}
+
+.lesson-sidebar {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panel-header,
+.canvas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.canvas-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.panel-header h3,
+.canvas-header h3,
+.tile-card h3,
+.report-panel h3,
+.questions-panel h3,
+.dashboard-task-card h3,
+.nav-drawer-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.badge,
+.tag {
+  background: #edf5ff;
+  color: #1a4f8d;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.duration-badge {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 3px 9px;
+  margin: 0 2px;
+}
+
+.field-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.83rem;
+  color: #355063;
+  font-weight: 600;
+}
+
+label span {
+  padding-left: 2px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  border: 1px solid #dfe7ee;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  color: #1f2d3d;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.upload-card {
+  border: 1px dashed #bfd2ea;
+  background: #f5faff;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.upload-card h4,
+.card-label {
+  margin: 0;
+  color: #5a7385;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.upload-card h4 {
+  letter-spacing: 0;
+  text-transform: none;
+  color: #1f2d3d;
+  margin-top: 8px;
+  font-size: 1rem;
+}
+
+.form-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #8fa3b3;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.form-divider::before,
+.form-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #dfe7ee;
+}
+
+.planning-tabs {
+  display: flex;
+  gap: 6px;
+  background: #eef4fb;
+  border: 1px solid #dbe8f5;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.planning-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #355063;
+  font: inherit;
+  font-weight: 600;
+  padding: 9px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.planning-tab:hover {
+  color: #1a4f8d;
+}
+
+.planning-tab.active {
+  background: #ffffff;
+  color: #1a4f8d;
+  box-shadow: 0 6px 14px rgba(27, 40, 52, 0.08);
+}
+
+.planning-form,
+.planning-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.practice-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.83rem;
+  color: #355063;
+  font-weight: 600;
+}
+
+.practice-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.practice-chip {
+  border: 1px solid #d8e1ea;
+  background: #fff;
+  color: #355063;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.practice-chip:hover {
+  border-color: #bdd7ff;
+}
+
+.practice-chip.selected {
+  background: #e9f2ff;
+  border-color: #5aa0ff;
+  color: #1a4f8d;
+}
+
+.generate-button {
+  width: 100%;
+  padding: 12px 16px;
+  font-weight: 700;
+}
+
+.planning-thread {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 0;
+}
+
+.lesson-context-card {
+  border: 1px solid #dfe7ee;
+  background: #f7fbff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.context-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.practice-tags-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.workspace-placeholder,
+.workspace-canvas {
+  min-height: 100%;
+  padding: 20px;
+}
+
+.empty-state {
+  border: 1px dashed #c8d8ea;
+  background: linear-gradient(135deg, #f7fafc, #eef5fb);
+  border-radius: 18px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.empty-state h3 {
+  margin: 10px 0 0;
+  max-width: 440px;
+}
+
+.empty-state-support {
+  margin: 10px 0 0;
+  max-width: 420px;
+  color: #5a7385;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.lesson-plan-editor {
+  background: #fefefe;
+  border: 1px solid #dfe7ee;
+  border-radius: 16px;
+  min-height: 520px;
+  overflow: hidden;
+}
+
+.lesson-plan-content {
+  padding: 24px 22px;
+  line-height: 1.7;
+  color: #1f2d3d;
+}
+
+.lesson-plan-content p {
+  margin: 0 0 10px;
+  border-radius: 8px;
+  padding: 2px 6px;
+}
+
+.lesson-plan-content strong {
+  color: #1a4f8d;
+}
+
+.ai-highlight {
+  background: rgba(243, 183, 58, 0.35);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.ai-revised-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(243, 183, 58, 0.18);
+  color: #9a6a00;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.state-selector {
+  display: inline-flex;
+  gap: 6px;
+  background: #eef4fb;
+  border: 1px solid #dbe8f5;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 4px;
+}
+
+.state-tab {
+  border: none;
+  background: transparent;
+  color: #355063;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.state-tab:hover {
+  color: #1a4f8d;
+}
+
+.state-tab.active {
+  background: #ffffff;
+  color: #1a4f8d;
+  box-shadow: 0 6px 14px rgba(27, 40, 52, 0.08);
+}
+
+.state-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.lesson-source {
+  margin: 0;
+  color: #5a7385;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.content-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #5a7385;
+  font-size: 0.78rem;
+}
+
+.legend-divider {
+  color: #c3d0db;
+}
+
+.lesson-highlight-trigger {
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  border-radius: 4px;
+}
+
+.lesson-highlight-trigger.ai-highlight {
+  padding: 1px 4px;
+}
+
+.lesson-highlight-trigger.ai-highlight:hover {
+  filter: brightness(0.97);
+}
+
+/* AI Revised baseline sections: most of the text is the teacher's normal
+   content (only specific added/changed phrases get .ai-highlight inline),
+   so the trigger itself carries no persistent background — this hover just
+   keeps it feeling clickable. */
+.lesson-highlight-trigger:not(.ai-highlight):hover {
+  background: rgba(15, 27, 40, 0.04);
+}
+
+.lesson-hint {
+  margin: 0;
+  color: #5a7385;
+  font-size: 0.78rem;
+}
+
+.lesson-section-heading {
+  margin: 18px 0 6px;
+}
+
+.lesson-section-heading:first-child {
+  margin-top: 0;
+}
+
+.lesson-lead-in {
+  margin: 0 0 6px;
+  padding: 2px 6px;
+  color: #1f2d3d;
+}
+
+.lesson-bullet-list {
+  margin: 0 0 10px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.suggestion-popover {
+  position: relative;
+  background: #fffdf5;
+  border: 1px solid rgba(243, 183, 58, 0.45);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 8px 0 14px;
+  box-shadow: 0 10px 22px rgba(154, 106, 0, 0.12);
+}
+
+.suggestion-popover::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 20px;
+  width: 12px;
+  height: 12px;
+  background: #fffdf5;
+  border-left: 1px solid rgba(243, 183, 58, 0.45);
+  border-top: 1px solid rgba(243, 183, 58, 0.45);
+  transform: rotate(45deg);
+}
+
+.suggestion-popover p {
+  margin: 4px 0 12px;
+  color: #4a3a00;
+  line-height: 1.6;
+}
+
+.suggestion-popover .card-label {
+  color: #9a6a00;
+}
+
+.selection-ask-popup {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, calc(-100% - 10px));
+}
+
+.selection-ask-popup::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  border-width: 5px 5px 0 5px;
+  border-style: solid;
+  border-color: #2f80ed transparent transparent transparent;
+}
+
+.ask-ai-chip {
+  border: none;
+  background: linear-gradient(135deg, #1976d2, #2f80ed);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 10px 20px rgba(47, 128, 237, 0.35);
+  transition: transform 0.2s ease;
+}
+
+.ask-ai-chip:hover {
+  transform: translateY(-1px);
+}
+
+.revision-actions {
+  display: flex;
+  gap: 8px;
+  margin: -2px 0 14px;
+}
+
+.accept-button,
+.reject-button {
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.76rem;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.accept-button:hover,
+.reject-button:hover {
+  transform: translateY(-1px);
+}
+
+.accept-button {
+  background: rgba(47, 196, 121, 0.12);
+  color: #0f7a52;
+}
+
+.reject-button {
+  background: rgba(98, 118, 138, 0.12);
+  color: #42596c;
+}
+
+.inline-ai-editor {
+  background: #f7fbff;
+  border: 1px solid #dbe8f5;
+  border-left: 3px solid #5aa0ff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: -2px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inline-ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inline-ai-header .card-label {
+  margin: 0;
+  color: #2b6cb0;
+}
+
+.inline-ai-thread {
+  margin-bottom: 0;
+}
+
+.inline-preview-button {
+  align-self: flex-start;
+}
+
+.inline-ai-preview {
+  background: #fffdf5;
+  border: 1px solid rgba(243, 183, 58, 0.45);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.inline-ai-preview p {
+  margin: 4px 0 10px;
+  color: #4a3a00;
+  line-height: 1.6;
+}
+
+.inline-ai-preview .card-label {
+  color: #9a6a00;
+}
+
+/* Compact "why AI suggested these questions" context — capped at two short
+   lines, so it never grows into a full evidence/report card. */
+.inline-ai-preview .facilitation-evidence-basis p {
+  margin: 0 0 3px;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.inline-ai-preview .facilitation-evidence-basis p:last-child {
+  margin-bottom: 8px;
+}
+
+.inline-ai-applied-note {
+  margin: 0;
+  color: #0f7a52;
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.revision-diff .card-label:not(:first-child) {
+  margin-top: 4px;
+}
+
+.suggestion-popover p.revision-diff-arrow {
+  margin: -4px 0 0;
+  color: #c3a45a;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.suggestion-popover p.revision-diff-note {
+  margin: 0 0 12px;
+  color: #0f7a52;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.chat-message {
+  max-width: 80%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  line-height: 1.5;
+}
+
+/* Global convention for every chatbot/AI conversation in the app:
+   AI messages on the left, teacher/user messages on the right, each with a
+   small sender label ("AI" / "You") above the bubble. */
+.teacher-message {
+  align-self: flex-end;
+  background: #f2f5f8;
+  color: #27415f;
+}
+
+.ai-message {
+  align-self: flex-start;
+  background: linear-gradient(135deg, #eaf4ff, #dfefff);
+  color: #1d3e66;
+}
+
+.chat-message-label {
+  margin: 0 0 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.composer-box {
+  display: flex;
+  gap: 10px;
+}
+
+.composer-box input {
+  flex: 1;
+}
+
+.dashboard-page {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard-task-card {
+  padding: 18px 20px;
+}
+
+.dashboard-task-card h3 {
+  margin: 6px 0 8px;
+}
+
+.dashboard-task-question {
+  margin: 0;
+  color: #42596c;
+  line-height: 1.6;
+}
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  background: linear-gradient(135deg, #ffffff, #f3f7ff);
+  border: 1px solid #dfe7ee;
+  border-radius: 16px;
+  padding: 18px 16px;
+}
+
+.metric-card p,
+.metric-card span {
+  margin: 0;
+  color: #5a7385;
+}
+
+.metric-card strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 2rem;
+  color: #1f2d3d;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.1fr) minmax(280px, 1.6fr);
+  gap: 20px;
+}
+
+.report-panel,
+.questions-panel {
+  padding: 18px 20px;
+}
+
+.trend-list,
+.student-list,
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trend-item {
+  width: 100%;
+  border: 1px solid #dfe7ee;
+  background: white;
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  color: #1f2d3d;
+  font: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.trend-item:hover {
+  border-color: #b9cfe6;
+}
+
+.trend-item.active {
+  border-color: #2f6fed;
+  background: #eef4ff;
+  box-shadow: 0 0 0 1px #2f6fed inset;
+}
+
+.trend-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.analyze-trend-button {
+  margin-top: 10px;
+}
+
+.trend-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.trend-stat strong {
+  font-size: 1rem;
+  color: #1f2d3d;
+}
+
+.trend-count {
+  font-size: 0.75rem;
+  color: #5a7385;
+}
+
+.student-card {
+  width: 100%;
+  border: 1px solid #dfe7ee;
+  background: #f9fbff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.student-card:hover {
+  border-color: #b9cfe6;
+}
+
+.student-card.active {
+  border-color: #2f6fed;
+  background: #eef4ff;
+  box-shadow: 0 0 0 1px #2f6fed inset;
+}
+
+.student-quote {
+  margin: 0 0 6px;
+  color: #1f2d3d;
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.student-note {
+  margin: 0;
+  color: #5a7385;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.student-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.student-card h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.facilitation-refine {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #dfe7ee;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.question-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #1f2d3d;
+}
+
+.question-list li {
+  line-height: 1.7;
+}
+
+.ai-analysis-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 27, 40, 0.35);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 40;
+}
+
+.ai-analysis-drawer {
+  width: 420px;
+  max-width: 92vw;
+  height: 100%;
+  background: #f8fafc;
+  border-left: 1px solid #dfe7ee;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: -12px 0 32px rgba(15, 27, 40, 0.18);
+  overflow: hidden;
+  animation: drawer-in-right 0.18s ease-out;
+}
+
+.ai-analysis-drawer > .lesson-context-card {
+  padding: 10px 16px;
+  gap: 4px;
+}
+
+/* Header, context card, suggestion chips, and composer stay fixed in place;
+   only the conversation itself (.trend-chat-thread) scrolls, so the input
+   is always reachable no matter how long the conversation gets. */
+.ai-analysis-drawer > .nav-drawer-header,
+.ai-analysis-drawer > .lesson-context-card,
+.ai-analysis-drawer > .trend-chat-suggestions,
+.ai-analysis-drawer > .composer-box {
+  flex-shrink: 0;
+}
+
+@keyframes drawer-in-right {
+  from {
+    transform: translateX(16px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Trend analysis conversation — a real chat, not a report: teacher messages
+   are compact and right-aligned; AI responses are shown as a larger,
+   visually distinct card on the left since they carry structured student
+   evidence and analysis. Scoped to the "Analyze Class Trends" panel only. */
+.trend-chat-thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.trend-chat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trend-chat-row-teacher {
+  align-self: flex-end;
+  align-items: flex-end;
+  max-width: 78%;
+}
+
+.trend-chat-row-ai {
+  align-self: flex-start;
+  align-items: flex-start;
+  max-width: 94%;
+}
+
+.trend-chat-speaker {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5a7385;
+}
+
+.trend-chat-bubble {
+  border-radius: 14px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.trend-chat-bubble-teacher {
+  background: #f2f5f8;
+  color: #27415f;
+  padding: 6px 14px;
+  font-size: 0.92rem;
+}
+
+.trend-chat-bubble-ai {
+  background: linear-gradient(135deg, #eaf4ff, #dfefff);
+  color: #1d3e66;
+  padding: 8px 16px;
+  border-left: 3px solid #5aa0ff;
+  box-shadow: 0 8px 20px rgba(47, 128, 237, 0.12);
+}
+
+.trend-chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trend-chat-suggestions .practice-chip {
+  font-size: 0.72rem;
+  padding: 6px 10px;
+}
+
+@media (max-width: 900px) {
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-main {
+    padding: 14px 14px 28px;
+  }
+
+  .topbar {
+    padding: 16px 14px;
+  }
+
+  .composer-box {
+    flex-direction: column;
+  }
+}
