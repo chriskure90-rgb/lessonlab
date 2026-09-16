@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react'
 import './App.css'
 
 type PageId =
@@ -24,13 +24,8 @@ type PracticeOption = { id: string; label: string; description: string }
 const practiceOptions: PracticeOption[] = [
   {
     id: 'modeling',
-    label: 'Develop & Use Models',
+    label: 'Develop and Use Models',
     description: 'Students build a model to represent their current thinking, then test and revise it as they learn more.',
-  },
-  {
-    id: 'evidence',
-    label: 'Use Evidence',
-    description: 'Students support their ideas with specific data or observations, not just opinions.',
   },
   {
     id: 'explanation',
@@ -39,17 +34,140 @@ const practiceOptions: PracticeOption[] = [
   },
   {
     id: 'argumentation',
-    label: 'Engage in Argumentation',
+    label: 'Engage in Argument from Evidence',
     description: 'Students defend their thinking and weigh alternative ideas using evidence.',
-  },
-  {
-    id: 'revision',
-    label: 'Revise Thinking',
-    description: 'Students update their models or explanations when new evidence challenges their first ideas.',
   },
 ]
 
+const pacingOptions = [
+  { id: '45', label: '45 min' },
+  { id: '50', label: '50 min' },
+  { id: '60', label: '60 min' },
+  { id: '75', label: '75 min' },
+  { id: '90', label: '90 min' },
+  { id: 'custom', label: 'Custom' },
+] as const
+
 const lessonContextTags = ['Grade 9', 'Ecosystems', 'Energy Flow', 'Initial Modeling', 'Model Revision']
+
+// Mock NGSS data for the Standards search field on the planning Form — lets
+// a teacher find a standard by topic/concept/keyword instead of needing to
+// already know its code. `keywords` are extra plain-language search terms
+// beyond what's already in the code/description.
+type NgssGradeBand = 'K-2' | '3-5' | '6-8' | '9-12'
+
+type NgssStandard = {
+  code: string
+  description: string
+  gradeBand: NgssGradeBand
+  keywords: readonly string[]
+}
+
+// Maps the Lesson Planning form's own "Grade level" options (a narrower,
+// teacher-facing set) onto the NGSS grade band the Standards search filters
+// by — so the teacher is never asked to pick a grade level a second time.
+const gradeLevelToNgssBand: Partial<Record<string, NgssGradeBand>> = {
+  '6-8': '6-8',
+  '9-10': '9-12',
+  '11-12': '9-12',
+}
+
+const ngssStandardsBank: NgssStandard[] = [
+  {
+    code: 'K-ESS3-1',
+    description: 'Use a model to represent the relationship between the needs of different plants and animals and the places they live.',
+    gradeBand: 'K-2',
+    keywords: ['habitat', 'needs', 'organisms', 'model'],
+  },
+  {
+    code: '2-LS2-1',
+    description: 'Plan and conduct an investigation to determine if plants need sunlight and water to grow.',
+    gradeBand: 'K-2',
+    keywords: ['plants', 'growth', 'investigation', 'sunlight'],
+  },
+  {
+    code: '3-LS4-3',
+    description: 'Construct an argument with evidence that in a particular habitat some organisms can survive well, some survive less well, and some cannot survive at all.',
+    gradeBand: '3-5',
+    keywords: ['habitat', 'survival', 'argument', 'evidence'],
+  },
+  {
+    code: '4-PS3-2',
+    description: 'Make observations to provide evidence that energy can be transferred from place to place by sound, light, heat, and electric currents.',
+    gradeBand: '3-5',
+    keywords: ['energy', 'transfer', 'heat', 'light'],
+  },
+  {
+    code: '5-PS3-1',
+    description: 'Use models to describe that energy in animals’ food was once energy from the sun.',
+    gradeBand: '3-5',
+    keywords: ['energy', 'food', 'sun', 'model'],
+  },
+  {
+    code: 'MS-LS2-1',
+    description: 'Analyze and interpret data to provide evidence for the effects of resource availability on organisms and populations of organisms in an ecosystem.',
+    gradeBand: '6-8',
+    keywords: ['ecosystem', 'population', 'resources', 'data'],
+  },
+  {
+    code: 'MS-LS2-3',
+    description: 'Develop a model to describe the cycling of matter and flow of energy among living and nonliving parts of an ecosystem.',
+    gradeBand: '6-8',
+    keywords: ['ecosystem', 'energy', 'matter', 'model', 'cycling'],
+  },
+  {
+    code: 'MS-PS3-3',
+    description: 'Apply scientific principles to design, construct, and test a device that either minimizes or maximizes thermal energy transfer.',
+    gradeBand: '6-8',
+    keywords: ['energy', 'heat', 'design', 'engineering'],
+  },
+  {
+    code: 'MS-ESS3-3',
+    description: 'Apply scientific principles to design a method for monitoring and minimizing a human impact on the environment.',
+    gradeBand: '6-8',
+    keywords: ['environment', 'human impact', 'sustainability'],
+  },
+  {
+    code: 'HS-LS2-3',
+    description: 'Construct and revise an explanation based on evidence for the cycling of matter and flow of energy in ecosystems.',
+    gradeBand: '9-12',
+    keywords: ['ecosystem', 'energy', 'matter', 'cycling', 'evidence'],
+  },
+  {
+    code: 'HS-LS2-4',
+    description: 'Use mathematical representations to support claims for the cycling of matter and flow of energy among organisms in an ecosystem.',
+    gradeBand: '9-12',
+    keywords: ['ecosystem', 'energy', 'matter', 'mathematical'],
+  },
+  {
+    code: 'HS-LS1-5',
+    description: 'Use a model to illustrate how photosynthesis transforms light energy into stored chemical energy.',
+    gradeBand: '9-12',
+    keywords: ['photosynthesis', 'energy', 'model', 'cells'],
+  },
+  {
+    code: 'HS-PS3-1',
+    description: 'Create a computational model to calculate the change in energy of one component in a system when the change in energy of the other components and energy flows in and out of the system are known.',
+    gradeBand: '9-12',
+    keywords: ['energy', 'system', 'computational', 'model'],
+  },
+  {
+    code: 'HS-ESS2-6',
+    description: 'Develop a quantitative model to describe the cycling of carbon among the hydrosphere, atmosphere, geosphere, and biosphere.',
+    gradeBand: '9-12',
+    keywords: ['carbon', 'cycling', 'earth', 'model'],
+  },
+]
+
+function matchesStandardsQuery(standard: NgssStandard, query: string): boolean {
+  if (!query) return true
+  const normalizedQuery = query.toLowerCase()
+  return (
+    standard.code.toLowerCase().includes(normalizedQuery) ||
+    standard.description.toLowerCase().includes(normalizedQuery) ||
+    standard.keywords.some((keyword) => keyword.toLowerCase().includes(normalizedQuery))
+  )
+}
 
 const planningConversation = [
   {
@@ -1058,13 +1176,47 @@ function App() {
   const [activePage, setActivePage] = useState<PageId>('lesson-generator')
   const [navOpen, setNavOpen] = useState(false)
 
-  // Lifted out of LessonWorkspacePage so accepted revisions and conversation
-  // history survive navigating to another page and back (that page unmounts
-  // and remounts LessonWorkspacePage, which would otherwise reset this state).
+  // Lifted out of the lesson workspace canvas so accepted revisions,
+  // conversation history, and manual edits survive navigating away and back
+  // — the canvas now mounts in two different places (embedded on the Lesson
+  // Planning page after Generate Lesson, and on the standalone Lesson
+  // Workspace page), and neither should reset the other's work.
   const [lessonVersion, setLessonVersion] = useState<LessonVersion>('original')
   const [openSuggestion, setOpenSuggestion] = useState<string | null>(null)
   const [openComparison, setOpenComparison] = useState<string | null>(null)
   const revisionEditor = useInlineEditor()
+  const [isEditingLesson, setIsEditingLesson] = useState(false)
+  const [manualEditsByVersion, setManualEditsByVersion] = useState<Record<LessonVersion, Record<string, string>>>({
+    original: {},
+    suggestions: {},
+    revised: {},
+  })
+  const [draftBySection, setDraftBySection] = useState<Record<string, string>>({})
+  const [editBaseline, setEditBaseline] = useState<Record<string, string>>({})
+
+  // Generate Lesson no longer navigates away from the Lesson Planning page —
+  // it reveals the generated lesson in the workspace panel on the right,
+  // in place, so the form and any AI Chat conversation on the left stay
+  // exactly as the teacher left them.
+  const [lessonGenerated, setLessonGenerated] = useState(false)
+
+  const canvasProps: LessonWorkspaceCanvasProps = {
+    editor: revisionEditor,
+    lessonVersion,
+    setLessonVersion,
+    openSuggestion,
+    setOpenSuggestion,
+    openComparison,
+    setOpenComparison,
+    isEditing: isEditingLesson,
+    setIsEditing: setIsEditingLesson,
+    manualEditsByVersion,
+    setManualEditsByVersion,
+    draftBySection,
+    setDraftBySection,
+    editBaseline,
+    setEditBaseline,
+  }
 
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
@@ -1104,8 +1256,13 @@ function App() {
           >
             <span aria-hidden="true">☰</span>
           </button>
-          <div className="brand-mark small">AI</div>
-          <span className="brand-name">LessonLab</span>
+          <div className="brand-text">
+            <span className="brand-name">PARTNERS</span>
+            <span className="brand-subtitle">
+              Promoting an Artificial Intelligence-Researcher-Teacher Network for Epistemic Practices in Science
+              Education
+            </span>
+          </div>
         </div>
       </header>
 
@@ -1116,19 +1273,13 @@ function App() {
         </div>
 
         {activePage === 'lesson-generator' && (
-          <LessonPlanningPage onGenerateLessonPlan={() => setActivePage('lesson-workspace')} />
-        )}
-        {activePage === 'lesson-workspace' && (
-          <LessonWorkspacePage
-            editor={revisionEditor}
-            lessonVersion={lessonVersion}
-            setLessonVersion={setLessonVersion}
-            openSuggestion={openSuggestion}
-            setOpenSuggestion={setOpenSuggestion}
-            openComparison={openComparison}
-            setOpenComparison={setOpenComparison}
+          <LessonPlanningPage
+            onGenerateLessonPlan={() => setLessonGenerated(true)}
+            lessonGenerated={lessonGenerated}
+            canvasProps={canvasProps}
           />
         )}
+        {activePage === 'lesson-workspace' && <LessonWorkspacePage canvasProps={canvasProps} />}
         {activePage === 'class-feedback-dashboard' && <FeedbackDashboardPage />}
       </main>
 
@@ -1195,12 +1346,54 @@ function LessonPlanningPanel({
 }) {
   const [planningTab, setPlanningTab] = useState<PlanningTab>(defaultTab)
   const [selectedPractices, setSelectedPractices] = useState<string[]>(['modeling'])
+  // Every field below is lifted above the Form/AI Chat toggle so a
+  // teacher's entries survive switching tabs and back, and survive
+  // clicking Generate Lesson (which no longer unmounts this panel at all).
+  const [topic, setTopic] = useState('')
+  const [learningObjectives, setLearningObjectives] = useState('')
+  const [priorInstruction, setPriorInstruction] = useState('')
+  const [materialsAndEquipment, setMaterialsAndEquipment] = useState('')
+  const [assessmentPreferences, setAssessmentPreferences] = useState('')
+
+  // The form's own Grade level selector doubles as the Standards filter —
+  // teachers aren't asked to pick a grade a second time. Its options are
+  // narrower bands than NGSS uses, so each maps to the NGSS band it falls
+  // within.
+  const [gradeLevel, setGradeLevel] = useState('')
+  const selectedNgssBand = gradeLevelToNgssBand[gradeLevel]
+
+  // Standards search: a teacher can type a keyword — without needing to
+  // already know a standard's code — and pick any number of matching
+  // standards (automatically scoped to the selected grade level), which
+  // then show as removable chips.
+  const [standardsQuery, setStandardsQuery] = useState('')
+  const [selectedStandardCodes, setSelectedStandardCodes] = useState<string[]>([])
 
   const togglePractice = (practiceId: string) => {
     setSelectedPractices((prev) =>
       prev.includes(practiceId) ? prev.filter((item) => item !== practiceId) : [...prev, practiceId],
     )
   }
+
+  const showStandardsSuggestions = Boolean(selectedNgssBand) && Boolean(standardsQuery.trim())
+  const suggestedStandards = selectedNgssBand
+    ? ngssStandardsBank
+        .filter((standard) => !selectedStandardCodes.includes(standard.code))
+        .filter((standard) => standard.gradeBand === selectedNgssBand)
+        .filter((standard) => matchesStandardsQuery(standard, standardsQuery.trim()))
+        .slice(0, 6)
+    : []
+
+  const addStandard = (code: string) => {
+    setSelectedStandardCodes((prev) => (prev.includes(code) ? prev : [...prev, code]))
+  }
+
+  const removeStandard = (code: string) => {
+    setSelectedStandardCodes((prev) => prev.filter((item) => item !== code))
+  }
+
+  const [pacingSelection, setPacingSelection] = useState('')
+  const [customPacingMinutes, setCustomPacingMinutes] = useState('')
 
   return (
     <aside className="lesson-sidebar planning-panel">
@@ -1249,54 +1442,150 @@ function LessonPlanningPanel({
           <div className="field-grid">
             <label>
               <span>Grade level</span>
-              <select defaultValue="">
+              <select value={gradeLevel} onChange={(event) => setGradeLevel(event.target.value)}>
                 <option value="" disabled>
                   Select grade level
                 </option>
-                <option>6-8</option>
-                <option>9-10</option>
-                <option>11-12</option>
+                <option value="6-8">6-8</option>
+                <option value="9-10">9-10</option>
+                <option value="11-12">11-12</option>
               </select>
             </label>
 
             <label>
               <span>Topic</span>
-              <input type="text" placeholder="Ecosystems, forces, photosynthesis..." />
+              <input
+                type="text"
+                placeholder="Ecosystems, forces, photosynthesis..."
+                value={topic}
+                onChange={(event) => setTopic(event.target.value)}
+              />
             </label>
 
-            <label>
+            <div className="standards-field">
               <span>Standards</span>
-              <input type="text" placeholder="NGSS, state standards, etc." />
-            </label>
+              <input
+                type="text"
+                placeholder="Search by topic, concept, or standard code"
+                value={standardsQuery}
+                onChange={(event) => setStandardsQuery(event.target.value)}
+              />
+
+              {!selectedNgssBand ? (
+                <p className="standards-empty">Select a grade level above to see suggested standards.</p>
+              ) : (
+                showStandardsSuggestions && (
+                  <div className="standards-suggestions">
+                    {suggestedStandards.length > 0 ? (
+                      suggestedStandards.map((standard) => (
+                        <button
+                          type="button"
+                          key={standard.code}
+                          className="standard-suggestion"
+                          onClick={() => addStandard(standard.code)}
+                        >
+                          <span className="standard-suggestion-code">{standard.code}</span>
+                          <span className="standard-suggestion-description">{standard.description}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="standards-empty">No matching standards found. Try a different keyword.</p>
+                    )}
+                  </div>
+                )
+              )}
+
+              {selectedStandardCodes.length > 0 && (
+                <div className="selected-standards-row">
+                  {selectedStandardCodes.map((code) => {
+                    const standard = ngssStandardsBank.find((item) => item.code === code)
+                    if (!standard) return null
+                    return (
+                      <span key={code} className="tag selected-standard-chip">
+                        {standard.code}
+                        <button
+                          type="button"
+                          className="chip-remove"
+                          aria-label={`Remove ${standard.code}`}
+                          onClick={() => removeStandard(code)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             <label>
               <span>Learning objectives</span>
-              <textarea rows={4} placeholder="Describe the target learning outcomes..." />
+              <textarea
+                rows={4}
+                placeholder="Describe the target learning outcomes..."
+                value={learningObjectives}
+                onChange={(event) => setLearningObjectives(event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Prior Instruction</span>
+              <textarea
+                rows={4}
+                placeholder="Short description of what students have learned…"
+                value={priorInstruction}
+                onChange={(event) => setPriorInstruction(event.target.value)}
+              />
             </label>
 
             <label>
               <span>Materials &amp; equipment</span>
-              <textarea rows={2} placeholder="Materials, equipment, technology, lab/safety needs..." />
-            </label>
-
-            <label>
-              <span>Lesson procedure</span>
-              <select defaultValue="5e">
-                <option value="5e">5E (Engage, Explore, Explain, Elaborate, Evaluate)</option>
-                <option value="direct">Direct instruction + guided practice</option>
-                <option value="inquiry">Open inquiry / investigation</option>
-              </select>
+              <textarea
+                rows={2}
+                placeholder="Materials, equipment, technology, lab/safety needs..."
+                value={materialsAndEquipment}
+                onChange={(event) => setMaterialsAndEquipment(event.target.value)}
+              />
             </label>
 
             <label>
               <span>Assessment preferences</span>
-              <input type="text" placeholder="Formative check, summative task, both..." />
+              <input
+                type="text"
+                placeholder="Formative check, summative task, both..."
+                value={assessmentPreferences}
+                onChange={(event) => setAssessmentPreferences(event.target.value)}
+              />
             </label>
 
-            <label>
-              <span>Pacing / duration</span>
-              <input type="text" placeholder="e.g., 50-minute class period" />
-            </label>
+            <div className="practice-field">
+              <span>Pacing / Duration</span>
+              <div className="practice-chip-row pacing-chip-row">
+                {pacingOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`practice-chip pacing-chip ${pacingSelection === option.id ? 'selected' : ''}`}
+                    aria-pressed={pacingSelection === option.id}
+                    onClick={() => setPacingSelection(option.id)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {pacingSelection === 'custom' && (
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  className="pacing-custom-input"
+                  placeholder="Minutes"
+                  aria-label="Custom duration in minutes"
+                  value={customPacingMinutes}
+                  onChange={(event) => setCustomPacingMinutes(event.target.value)}
+                />
+              )}
+            </div>
 
             <div className="practice-field">
               <span>Science Practices to Emphasize</span>
@@ -1357,7 +1646,15 @@ function LessonPlanningPanel({
   )
 }
 
-function LessonPlanningPage({ onGenerateLessonPlan }: { onGenerateLessonPlan: () => void }) {
+function LessonPlanningPage({
+  onGenerateLessonPlan,
+  lessonGenerated,
+  canvasProps,
+}: {
+  onGenerateLessonPlan: () => void
+  lessonGenerated: boolean
+  canvasProps: LessonWorkspaceCanvasProps
+}) {
   return (
     <div className="planning-layout">
       <LessonPlanningPanel
@@ -1368,36 +1665,32 @@ function LessonPlanningPage({ onGenerateLessonPlan }: { onGenerateLessonPlan: ()
         onGenerate={onGenerateLessonPlan}
       />
 
-      <section className="workspace-placeholder lesson-workspace-panel">
-        <div className="canvas-header">
-          <div>
-            <p className="card-label">Lesson workspace</p>
-            <h3>Lesson plan</h3>
+      {lessonGenerated ? (
+        <LessonWorkspaceCanvas {...canvasProps} />
+      ) : (
+        <section className="workspace-placeholder lesson-workspace-panel">
+          <div className="canvas-header">
+            <div>
+              <p className="card-label">Lesson workspace</p>
+              <h3>Lesson plan</h3>
+            </div>
           </div>
-        </div>
 
-        <div className="empty-state">
-          <p className="card-label">Ready for lesson output</p>
-          <h3>Your lesson plan will appear here</h3>
-          <p className="empty-state-support">
-            Complete the form, develop your activity with the AI assistant, or upload an existing
-            lesson to get started.
-          </p>
-        </div>
-      </section>
+          <div className="empty-state">
+            <p className="card-label">Ready for lesson output</p>
+            <h3>Your lesson plan will appear here</h3>
+            <p className="empty-state-support">
+              Complete the form, develop your activity with the AI assistant, or upload an existing
+              lesson to get started.
+            </p>
+          </div>
+        </section>
+      )}
     </div>
   )
 }
 
-function LessonWorkspacePage({
-  editor,
-  lessonVersion,
-  setLessonVersion,
-  openSuggestion,
-  setOpenSuggestion,
-  openComparison,
-  setOpenComparison,
-}: {
+type LessonWorkspaceCanvasProps = {
   editor: InlineEditor
   lessonVersion: LessonVersion
   setLessonVersion: (version: LessonVersion) => void
@@ -1405,7 +1698,40 @@ function LessonWorkspacePage({
   setOpenSuggestion: (key: string | null) => void
   openComparison: string | null
   setOpenComparison: (key: string | null) => void
-}) {
+  isEditing: boolean
+  setIsEditing: Dispatch<SetStateAction<boolean>>
+  manualEditsByVersion: Record<LessonVersion, Record<string, string>>
+  setManualEditsByVersion: Dispatch<SetStateAction<Record<LessonVersion, Record<string, string>>>>
+  draftBySection: Record<string, string>
+  setDraftBySection: Dispatch<SetStateAction<Record<string, string>>>
+  editBaseline: Record<string, string>
+  setEditBaseline: Dispatch<SetStateAction<Record<string, string>>>
+}
+
+// The generated lesson itself — tabs, sections, Edit Lesson, and the
+// contextual AI interactions. Lifted out of any one page so it can mount
+// in two places (embedded on the Lesson Planning page right after Generate
+// Lesson, and on the standalone Lesson Workspace page) while sharing the
+// exact same state, via props all lifted up to App — so navigating between
+// them, or generating a lesson without ever leaving Lesson Planning, never
+// loses a revision, conversation, or manual edit.
+function LessonWorkspaceCanvas({
+  editor,
+  lessonVersion,
+  setLessonVersion,
+  openSuggestion,
+  setOpenSuggestion,
+  openComparison,
+  setOpenComparison,
+  isEditing,
+  setIsEditing,
+  manualEditsByVersion,
+  setManualEditsByVersion,
+  draftBySection,
+  setDraftBySection,
+  editBaseline,
+  setEditBaseline,
+}: LessonWorkspaceCanvasProps) {
   const [lessonSource] = useState<LessonSource>('uploaded')
 
   const contentRef = useRef<HTMLDivElement>(null)
@@ -1418,21 +1744,6 @@ function LessonWorkspacePage({
   // ("original:Assessment" vs. "suggestions:Assessment" vs. "revised:Assessment")
   // to keep the three states fully decoupled while reusing the same hook.
   const scopedKey = (label: string) => `${lessonVersion}:${label}`
-
-  // Manual "Edit Lesson" mode is entirely separate from the AI revision
-  // system above — it never touches editor.revisedLesson, suggestions, or
-  // conversation state. A manual edit is kept per version (Original, AI
-  // Suggestions, AI Revised each hold their own) and, once saved, displays
-  // as plain text with no yellow highlight, since that color is reserved
-  // for AI-authored changes.
-  const [isEditing, setIsEditing] = useState(false)
-  const [manualEditsByVersion, setManualEditsByVersion] = useState<Record<LessonVersion, Record<string, string>>>({
-    original: {},
-    suggestions: {},
-    revised: {},
-  })
-  const [draftBySection, setDraftBySection] = useState<Record<string, string>>({})
-  const [editBaseline, setEditBaseline] = useState<Record<string, string>>({})
 
   const getDisplayText = (label: string, segments: readonly LessonSegment[]) => {
     const manualEdit = manualEditsByVersion[lessonVersion][label]
@@ -1828,14 +2139,7 @@ function LessonWorkspacePage({
   }
 
   return (
-    <div className="planning-layout">
-      <LessonPlanningPanel
-        defaultTab="form"
-        chatTitle="AI Planning Assistant"
-        chatBadge="Collaborative"
-        chatMessages={planningConversation}
-      />
-
+    <>
       <section className="workspace-canvas">
         <div className="canvas-header">
           <div>
@@ -1919,6 +2223,24 @@ function LessonWorkspacePage({
       </section>
 
       <SelectionAskAIPopup popup={popup} onAskAI={handleManualAskAI} />
+    </>
+  )
+}
+
+// The standalone "Lesson Workspace" nav page: its own Form/AI Chat panel on
+// the left (a separate LessonPlanningPanel instance/state from the one on
+// the Lesson Planning page) plus the same shared canvas on the right.
+function LessonWorkspacePage({ canvasProps }: { canvasProps: LessonWorkspaceCanvasProps }) {
+  return (
+    <div className="planning-layout">
+      <LessonPlanningPanel
+        defaultTab="form"
+        chatTitle="AI Planning Assistant"
+        chatBadge="Collaborative"
+        chatMessages={planningConversation}
+      />
+
+      <LessonWorkspaceCanvas {...canvasProps} />
     </div>
   )
 }
