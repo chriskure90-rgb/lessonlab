@@ -230,6 +230,16 @@
   .planning-layout {
     grid-template-columns: 1fr;
   }
+
+  /* Below the two-column breakpoint the sidebar and the lesson plan are
+     stacked in the same column, so sticking the sidebar would pin it over
+     the lesson content instead of beside it — fall back to normal stacked
+     scrolling here. */
+  .lesson-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 .lesson-sidebar,
@@ -243,11 +253,27 @@
   box-shadow: 0 12px 30px rgba(27, 40, 52, 0.04);
 }
 
+/* Keeps the Form / AI Chat workspace (Lesson Preferences, or the active
+   revision conversation — suggestion context, chat thread, composer,
+   Preview/Apply Change) in view while the teacher scrolls through the much
+   longer lesson plan beside it, without ever covering the page header: the
+   header isn't itself fixed, so it has already scrolled out of view by the
+   time this sticks. `align-self: start` opts this item out of the grid's
+   default stretch-to-match-the-tallest-column sizing (see .planning-layout)
+   so it keeps its own natural height instead of growing to match the
+   lesson plan; max-height + overflow-y then give a still-too-tall sidebar
+   (a long chat thread) its own internal scroll rather than letting it run
+   off-screen. */
 .lesson-sidebar {
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: sticky;
+  top: 20px;
+  align-self: start;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
 .panel-header,
@@ -731,12 +757,37 @@ textarea {
   filter: brightness(0.97);
 }
 
-/* AI Revised baseline sections: most of the text is the teacher's normal
-   content (only specific added/changed phrases get .ai-highlight inline),
-   so the trigger itself carries no persistent background — this hover just
-   keeps it feeling clickable. */
+/* Freeform/plain trigger text (e.g. a flagged phrase before it carries the
+   yellow highlight) has no persistent background — this hover just keeps it
+   feeling clickable. */
 .lesson-highlight-trigger:not(.ai-highlight):hover {
   background: rgba(15, 27, 40, 0.04);
+}
+
+/* Marks whichever lesson section is the current subject of the left AI
+   Chat's revision conversation, so the link between the two sides of the
+   workflow is obvious even though the chat itself no longer lives inline. */
+.section-focused {
+  border-left: 3px solid #2f6fed;
+  padding-left: 10px;
+  margin-left: -13px;
+}
+
+/* Brief success flash right after Apply Change — the lesson content itself
+   (not a separate preview block) is the thing that changed, so this just
+   needs to draw the eye to where, then get out of the way. */
+@keyframes section-applied-flash {
+  0% {
+    background-color: rgba(47, 196, 121, 0.22);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.section-just-applied {
+  animation: section-applied-flash 1.2s ease-out;
+  border-radius: 10px;
 }
 
 .lesson-hint {
@@ -842,8 +893,7 @@ textarea {
   margin: -2px 0 14px;
 }
 
-.accept-button,
-.reject-button {
+.accept-button {
   border: none;
   border-radius: 999px;
   font: inherit;
@@ -852,52 +902,48 @@ textarea {
   padding: 6px 12px;
   cursor: pointer;
   transition: transform 0.2s ease;
-}
-
-.accept-button:hover,
-.reject-button:hover {
-  transform: translateY(-1px);
-}
-
-.accept-button {
   background: rgba(47, 196, 121, 0.12);
   color: #0f7a52;
 }
 
-.reject-button {
-  background: rgba(98, 118, 138, 0.12);
-  color: #42596c;
+.accept-button:hover {
+  transform: translateY(-1px);
 }
 
-.inline-ai-editor {
+.accept-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.revision-chat-panel {
   background: #f7fbff;
   border: 1px solid #dbe8f5;
   border-left: 3px solid #5aa0ff;
   border-radius: 12px;
   padding: 14px 16px;
-  margin: -2px 0 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.inline-ai-header {
+.revision-chat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.inline-ai-header .card-label {
+.revision-chat-header .card-label {
   margin: 0;
   color: #2b6cb0;
 }
 
-.inline-ai-thread {
-  margin-bottom: 0;
+.revision-chat-header h4 {
+  margin: 2px 0 0;
 }
 
-.inline-preview-button {
-  align-self: flex-start;
+.revision-chat-thread {
+  margin-bottom: 0;
 }
 
 .inline-ai-preview {
@@ -917,41 +963,11 @@ textarea {
   color: #9a6a00;
 }
 
-/* Compact "why AI suggested these questions" context — capped at two short
-   lines, so it never grows into a full evidence/report card. */
-.inline-ai-preview .facilitation-evidence-basis p {
-  margin: 0 0 3px;
-  font-size: 0.76rem;
-  line-height: 1.4;
-}
-
-.inline-ai-preview .facilitation-evidence-basis p:last-child {
-  margin-bottom: 8px;
-}
-
 .inline-ai-applied-note {
   margin: 0;
   color: #0f7a52;
   font-weight: 600;
   font-size: 0.86rem;
-}
-
-.revision-diff .card-label:not(:first-child) {
-  margin-top: 4px;
-}
-
-.suggestion-popover p.revision-diff-arrow {
-  margin: -4px 0 0;
-  color: #c3a45a;
-  font-size: 0.8rem;
-  line-height: 1;
-}
-
-.suggestion-popover p.revision-diff-note {
-  margin: 0 0 12px;
-  color: #0f7a52;
-  font-weight: 600;
-  font-size: 0.82rem;
 }
 
 .chat-thread {
@@ -1050,8 +1066,14 @@ textarea {
 
 .report-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 1.1fr) minmax(280px, 1.6fr);
-  gap: 20px;
+  /* Roughly 42% Class Summary / 58% right workspace (Student Evidence +
+     Deeper AI Analysis) — the right side is where a teacher spends most of
+     the inspection/analysis time, so it gets the larger share, while the
+     minmax floor on the left keeps the objectives/findings list from ever
+     reading as a cramped sidebar. */
+  grid-template-columns: minmax(380px, 42fr) minmax(420px, 58fr);
+  align-items: start;
+  gap: 24px;
 }
 
 .report-panel,
@@ -1059,7 +1081,62 @@ textarea {
   padding: 18px 20px;
 }
 
-.trend-list,
+/* Desktop only (see the 900px breakpoint below, where the grid collapses
+   to one column): the right column is pinned to (and sized to) the
+   viewport while the teacher scrolls through the — potentially much
+   taller — Class Summary column beside it. It holds one unified Student
+   Evidence workspace (see .evidence-workspace-panel) rather than two
+   separate stacked cards, so there is exactly one internal scrollbar on
+   the right: Student Evidence and Deeper AI Analysis are sections within
+   that same scroll, not independently scrolling panes. */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 40px);
+}
+
+/* The outer card is a fixed-height frame (so it stays pinned beside Class
+   Summary); everything scrolls together inside .evidence-workspace-scroll,
+   which is the single scrollable region for both Student Evidence and
+   Deeper AI Analysis. */
+.evidence-workspace-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.evidence-workspace-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+}
+
+.evidence-workspace-panel .panel-header {
+  margin-bottom: 0;
+}
+
+/* The selected class-level finding gets its own row under the "Student
+   Evidence" heading (rather than sharing the header row), so the heading
+   has room to breathe and the finding text can wrap without fighting the
+   heading for space. */
+.evidence-context-row {
+  display: inline-block;
+  margin: 6px 0 18px;
+}
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .student-list,
 .question-list {
   display: flex;
@@ -1067,77 +1144,222 @@ textarea {
   gap: 12px;
 }
 
-.trend-item {
+.pattern-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* Class Summary is the page's primary analysis area, not a narrow
+   navigation sidebar — it keeps generous padding, trimmed slightly on the
+   sides (vs. the page's other panels) since the column itself is narrower
+   now that the right workspace has grown. */
+.class-summary-panel {
+  padding: 24px 22px;
+}
+
+/* Learning Objective Overlap, Engagement in Science Practices, and
+   Misconceptions live inside one "Class Summary" card as three distinct
+   layers rather than three separate cards — each keeps its own subtle,
+   professional accent (a tinted background and colored left border) so
+   the categories stay visually distinguishable while reading as one
+   compact, continuous list a teacher can scan straight down, with no tab
+   switching required. Misconceptions uses a light amber, kept as muted as
+   the blue and teal accents beside it — not a saturated warning color —
+   so it reads as one of three equal categories, not a grade or a failure
+   callout. */
+.summary-section {
+  border-left: 3px solid transparent;
+  border-radius: 0 10px 10px 0;
+  padding: 14px 14px;
+}
+
+.summary-section + .summary-section {
+  margin-top: 14px;
+}
+
+.summary-section-objective {
+  border-left-color: #5aa0ff;
+  background: #f6f9ff;
+}
+
+.summary-section-practice {
+  border-left-color: #3fb0a4;
+  background: #f4faf9;
+}
+
+.summary-section-misconception {
+  border-left-color: #e0ac47;
+  background: #fdf7ea;
+}
+
+.summary-section-title {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.summary-section-objective .summary-section-title {
+  color: #2f6fed;
+}
+
+.summary-section-practice .summary-section-title {
+  color: #29867b;
+}
+
+.summary-section-misconception .summary-section-title {
+  color: #97701e;
+}
+
+.pattern-group + .pattern-group {
+  margin-top: 12px;
+}
+
+.pattern-group-title {
+  margin: 0 0 6px;
+  color: #355063;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.pattern-row {
   width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   border: 1px solid #dfe7ee;
   background: white;
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 9px;
+  padding: 9px 14px;
   text-align: left;
   cursor: pointer;
   color: #1f2d3d;
   font: inherit;
+  font-size: 0.86rem;
+  line-height: 1.4;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.trend-item:hover {
+.pattern-row:hover {
   border-color: #b9cfe6;
 }
 
-.trend-item.active {
+.pattern-row.active {
   border-color: #2f6fed;
   background: #eef4ff;
   box-shadow: 0 0 0 1px #2f6fed inset;
 }
 
-.trend-item-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.pattern-row-label {
+  line-height: 1.4;
 }
 
-.analyze-trend-button {
-  margin-top: 10px;
-}
-
-.trend-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.trend-stat strong {
-  font-size: 1rem;
+.pattern-row-count {
+  flex: none;
+  font-weight: 700;
   color: #1f2d3d;
 }
 
-.trend-count {
-  font-size: 0.75rem;
-  color: #5a7385;
-}
-
-.student-card {
+.evidence-card {
   width: 100%;
   border: 1px solid #dfe7ee;
   background: #f9fbff;
   border-radius: 12px;
-  padding: 14px 16px;
-  text-align: left;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
+  padding: 16px 18px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.student-card:hover {
-  border-color: #b9cfe6;
+/* Marks whichever card the teacher last sent to Deeper AI Analysis via the
+   comment action, so it's obvious which student the conversation below is
+   currently centered on. */
+.evidence-card.student-focused {
+  border-color: #2f6fed;
+  box-shadow: 0 0 0 1px #2f6fed inset;
 }
 
-.student-card.active {
-  border-color: #2f6fed;
+.student-ask-ai-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #7089a0;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.student-ask-ai-button:hover {
+  background: rgba(47, 111, 237, 0.12);
+  color: #2f6fed;
+}
+
+/* The student list flows naturally inside the unified workspace's single
+   scroll container (.evidence-workspace-scroll) rather than scrolling on
+   its own — a dozen-plus cards just make that one scrollbar run longer. */
+.right-panel .student-list {
+  padding-right: 4px;
+}
+
+/* Student Evidence adopts the same accent as whichever Class Summary
+   category the selected pattern belongs to — a colored edge on the panel
+   itself, a tinted "selected pattern" label, and matching evidence-card
+   backgrounds — so the relationship between a summary row and the student
+   work behind it is visually obvious. Kept as light as the Class Summary
+   accents; nothing here is meant to read as a strong or alarming color. */
+.right-panel {
+  border-left: 4px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.right-panel.evidence-objective {
+  border-left-color: #5aa0ff;
+}
+
+.right-panel.evidence-practice {
+  border-left-color: #3fb0a4;
+}
+
+.right-panel.evidence-misconception {
+  border-left-color: #e0ac47;
+}
+
+.evidence-tag-objective {
   background: #eef4ff;
-  box-shadow: 0 0 0 1px #2f6fed inset;
+  color: #2f6fed;
+}
+
+.evidence-tag-practice {
+  background: #eafaf7;
+  color: #29867b;
+}
+
+.evidence-tag-misconception {
+  background: #fbf1de;
+  color: #97701e;
+}
+
+.evidence-objective .evidence-card {
+  background: #f6f9ff;
+  border-color: #dbe8fb;
+}
+
+.evidence-practice .evidence-card {
+  background: #f4faf9;
+  border-color: #d3ece7;
+}
+
+.evidence-misconception .evidence-card {
+  background: #fdf7ea;
+  border-color: #f0ddb0;
 }
 
 .student-quote {
@@ -1147,11 +1369,27 @@ textarea {
   line-height: 1.6;
 }
 
-.student-note {
-  margin: 0;
-  color: #5a7385;
+.student-artifact {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border: 1px dashed #bfd2ea;
+  border-radius: 8px;
+  background: #f5faff;
+  color: #35506f;
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+.student-artifact-image {
+  display: block;
+  width: 100%;
+  max-height: min(560px, 62vh);
+  object-fit: contain;
+  margin: 0 0 6px;
+  padding: 4px;
+  border: 1px solid #bfd2ea;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .student-header {
@@ -1162,18 +1400,146 @@ textarea {
   margin-bottom: 8px;
 }
 
-.student-card h4 {
+/* Holds the Ask AI action below the evidence itself (name, quote, model)
+   rather than beside the student's name — AI interpretation is a separate,
+   opt-in step, not something that competes with the raw evidence for
+   attention. */
+.student-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.evidence-card h4 {
   margin: 0;
   font-size: 1rem;
 }
 
-.facilitation-refine {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #dfe7ee;
+.regenerate-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2f6fed;
+  border: 1px solid #2f6fed;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.regenerate-button:hover:not(:disabled) {
+  background: #1c56c7;
+  color: #ffffff;
+}
+
+.regenerate-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Deeper AI Analysis is the next section of the unified Student Evidence
+   workspace, not a separate card — a divider and top margin are all that
+   set it apart from the student list above it. */
+.deeper-analysis-section {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #e5edf5;
+}
+
+.deeper-analysis-section .panel-header {
+  margin-bottom: 2px;
+}
+
+.deeper-analysis-subtitle {
+  margin: 0;
+}
+
+/* Within the unified workspace, Student Evidence and Deeper AI Analysis
+   share one scrollbar (.evidence-workspace-scroll) — so unlike the
+   standalone .deeper-analysis-body/.deeper-analysis-chat usage on the
+   Student Feedback page (a fixed-height panel with its own internal
+   scroll), the chat area here must NOT scroll independently. It just
+   grows with the conversation like any other content in the flow. */
+.evidence-workspace-panel .deeper-analysis-body {
+  flex: none;
+}
+
+.evidence-workspace-panel .deeper-analysis-chat {
+  flex: none;
+  min-height: 80px;
+  overflow-y: visible;
+}
+
+/* Everything below the header/hint (the chat area and the composer) shares
+   the panel's remaining fixed height — the chat area is the only flexible
+   piece, so it's what absorbs a long conversation while the composer stays
+   put (and visible) below it. */
+.deeper-analysis-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+}
+
+.deeper-analysis-body .composer-box {
+  flex: none;
+}
+
+.deeper-analysis-chat {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid #e7edf3;
+  border-radius: 12px;
+  background: #fbfcfe;
+  padding: 12px 14px;
+}
+
+.deeper-analysis-chat .chat-thread {
+  margin-bottom: 0;
+}
+
+/* Deeper AI Analysis now has the width to give messages more breathing
+   room than the global 80% cap (.chat-message) — scoped here so the
+   narrower chat panels elsewhere in the app (lesson AI interaction,
+   Student Feedback) are unaffected. */
+.deeper-analysis-chat .chat-message {
+  max-width: 92%;
+}
+
+.deeper-analysis-chat-empty {
+  margin: 0;
+  color: #8a9bab;
+  font-size: 0.86rem;
+  font-style: italic;
+}
+
+.send-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1976d2, #2f80ed);
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.send-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.send-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
 }
 
 .question-list {
@@ -1186,132 +1552,271 @@ textarea {
   line-height: 1.7;
 }
 
-.ai-analysis-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 27, 40, 0.35);
-  display: flex;
-  justify-content: flex-end;
-  z-index: 40;
-}
-
-.ai-analysis-drawer {
-  width: 420px;
-  max-width: 92vw;
-  height: 100%;
-  background: #f8fafc;
-  border-left: 1px solid #dfe7ee;
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: -12px 0 32px rgba(15, 27, 40, 0.18);
-  overflow: hidden;
-  animation: drawer-in-right 0.18s ease-out;
-}
-
-.ai-analysis-drawer > .lesson-context-card {
-  padding: 10px 16px;
-  gap: 4px;
-}
-
-/* Header, context card, suggestion chips, and composer stay fixed in place;
-   only the conversation itself (.trend-chat-thread) scrolls, so the input
-   is always reachable no matter how long the conversation gets. */
-.ai-analysis-drawer > .nav-drawer-header,
-.ai-analysis-drawer > .lesson-context-card,
-.ai-analysis-drawer > .trend-chat-suggestions,
-.ai-analysis-drawer > .composer-box {
-  flex-shrink: 0;
-}
-
-@keyframes drawer-in-right {
-  from {
-    transform: translateX(16px);
-    opacity: 0.4;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Trend analysis conversation — a real chat, not a report: teacher messages
-   are compact and right-aligned; AI responses are shown as a larger,
-   visually distinct card on the left since they carry structured student
-   evidence and analysis. Scoped to the "Analyze Class Trends" panel only. */
-.trend-chat-thread {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-right: 4px;
-}
-
-.trend-chat-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.trend-chat-row-teacher {
-  align-self: flex-end;
-  align-items: flex-end;
-  max-width: 78%;
-}
-
-.trend-chat-row-ai {
-  align-self: flex-start;
-  align-items: flex-start;
-  max-width: 94%;
-}
-
-.trend-chat-speaker {
-  margin: 0;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #5a7385;
-}
-
-.trend-chat-bubble {
-  border-radius: 14px;
-  line-height: 1.5;
-  white-space: pre-line;
-}
-
-.trend-chat-bubble-teacher {
-  background: #f2f5f8;
-  color: #27415f;
-  padding: 6px 14px;
-  font-size: 0.92rem;
-}
-
-.trend-chat-bubble-ai {
-  background: linear-gradient(135deg, #eaf4ff, #dfefff);
-  color: #1d3e66;
-  padding: 8px 16px;
-  border-left: 3px solid #5aa0ff;
-  box-shadow: 0 8px 20px rgba(47, 128, 237, 0.12);
-}
-
-.trend-chat-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.trend-chat-suggestions .practice-chip {
-  font-size: 0.72rem;
-  padding: 6px 10px;
-}
-
 @media (max-width: 900px) {
   .report-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Stacked single-column layout — sticking the right column here would
+     pin it above content it's no longer positioned beside, and fixing its
+     height would clip the unified Student Evidence workspace on a short
+     mobile viewport, so it reverts to normal, height-driven-by-content
+     placement and the page itself scrolls (matching Class Summary, which
+     has never had its own internal scroll). */
+  .right-column {
+    position: static;
+    height: auto;
+  }
+
+  .evidence-workspace-panel {
+    flex: none;
+    overflow: visible;
+  }
+
+  .evidence-workspace-scroll {
+    overflow-y: visible;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Student Feedback page — student's model/explanation workspace (left) and
+   a persistent Interactive AI Feedback conversation (right). Reuses shared
+   building blocks (.planning-tabs, .practice-chip, .lesson-context-card,
+   .composer-box, .deeper-analysis-body/.deeper-analysis-chat) so it stays
+   visually consistent with the teacher-facing pages instead of introducing
+   a parallel design language.
+   --------------------------------------------------------------------- */
+.student-workspace-layout {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 20px;
+}
+
+.student-model-panel,
+.student-ai-panel {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #dfe7ee;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(27, 40, 52, 0.04);
+  padding: 20px;
+}
+
+/* Both panels stay within the viewport rather than growing into one very
+   long page — the model workspace scrolls internally as a whole (its
+   content doesn't need a header/body split), while the AI panel splits
+   into a fixed header/context strip plus an independently scrolling
+   conversation, so the composer never scrolls out of reach (see
+   .deeper-analysis-body / .deeper-analysis-chat, reused below). */
+.student-model-panel {
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.student-ai-panel {
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.student-ai-panel .deeper-analysis-body {
+  min-height: 0;
+}
+
+.student-task-card {
+  border: 1px solid #dfe7ee;
+  background: #f7fbff;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.student-task-card h3 {
+  margin: 4px 0 8px;
+  font-size: 1.1rem;
+}
+
+.student-task-card p {
+  margin: 0;
+  color: #42596c;
+  line-height: 1.6;
+}
+
+.model-representation-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* The Descriptive/Mechanistic task prompt shown above the model itself
+   (see StudentFeedbackPage) — a plain white card so it reads as instructions
+   rather than competing with the task-card blue tint above it. */
+.model-task-prompt {
+  border: 1px solid #dfe7ee;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.model-task-prompt-label {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #2f6fed;
+}
+
+.model-task-prompt-section + .model-task-prompt-section {
+  margin-top: 10px;
+}
+
+.model-task-prompt-heading {
+  margin: 0 0 2px;
+  font-weight: 700;
+  color: #1f2d3d;
+}
+
+.model-task-prompt p {
+  margin: 0 0 4px;
+  color: #42596c;
+  line-height: 1.5;
+}
+
+.model-task-prompt ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #1f2d3d;
+}
+
+.model-task-prompt li {
+  line-height: 1.6;
+}
+
+.student-model-preview {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  padding: 6px;
+  border: 1px solid #bfd2ea;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.model-representation-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.student-explanation-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 14px;
+  transition: box-shadow 0.3s ease;
+}
+
+.student-explanation-field.revision-flash {
+  box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.35);
+}
+
+.student-explanation-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #1f2d3d;
+}
+
+.student-explanation-input-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.student-explanation-input-row textarea {
+  flex: 1;
+}
+
+.mic-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-top: 2px;
+  border-radius: 999px;
+  border: 1px solid #d8e1ea;
+  background: #fff;
+  color: #5a7385;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mic-button:hover {
+  border-color: #bdd7ff;
+  color: #2f6fed;
+}
+
+.mic-button.listening {
+  background: rgba(214, 69, 69, 0.1);
+  border-color: rgba(214, 69, 69, 0.5);
+  color: #c53030;
+  animation: mic-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(214, 69, 69, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(214, 69, 69, 0);
+  }
+}
+
+.mic-listening-note {
+  margin: 0;
+  color: #c53030;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.revise-button {
+  align-self: flex-start;
+}
+
+.student-feedback-composer input {
+  flex: 1;
+}
+
+@media (max-width: 840px) {
+  .student-workspace-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .student-model-panel,
+  .student-ai-panel {
+    position: static;
+    max-height: none;
+    height: auto;
+    overflow: visible;
+  }
+
+  .student-ai-panel .deeper-analysis-chat {
+    max-height: 360px;
   }
 }
 

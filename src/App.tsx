@@ -4,12 +4,14 @@ import './App.css'
 type PageId =
   | 'lesson-generator'
   | 'lesson-workspace'
+  | 'student-feedback'
   | 'class-feedback-dashboard'
 
 const PAGE_CONFIG = [
   { id: 'lesson-generator', label: 'Lesson Planning' },
   { id: 'lesson-workspace', label: 'Lesson Workspace' },
   { id: 'class-feedback-dashboard', label: 'Class Feedback' },
+  { id: 'student-feedback', label: 'Student Feedback' },
 ] as const
 
 type PlanningTab = 'form' | 'ai-chat'
@@ -48,7 +50,13 @@ const pacingOptions = [
   { id: 'custom', label: 'Custom' },
 ] as const
 
-const lessonContextTags = ['Grade 9', 'Ecosystems', 'Energy Flow', 'Initial Modeling', 'Model Revision']
+const lessonContextTags = ['Grades 9–12', 'Zombie Fires', 'Model Revision', 'Develop and Use Models']
+
+// The attached authentic student model — used as the primary example
+// student artifact throughout Class Feedback. Lives in /public so a
+// missing file degrades to a broken-image icon instead of failing the
+// build; drop the real file at public/zombie-fires-student-model.png.
+const ZOMBIE_FIRES_STUDENT_MODEL_IMAGE = '/zombie-fires-student-model.png'
 
 // Mock NGSS data for the Standards search field on the planning Form — lets
 // a teacher find a standard by topic/concept/keyword instead of needing to
@@ -63,13 +71,12 @@ type NgssStandard = {
   keywords: readonly string[]
 }
 
-// Maps the Lesson Planning form's own "Grade level" options (a narrower,
-// teacher-facing set) onto the NGSS grade band the Standards search filters
-// by — so the teacher is never asked to pick a grade level a second time.
+// Maps the Lesson Planning form's own "Grade level" options onto the NGSS
+// grade band the Standards search filters by — so the teacher is never
+// asked to pick a grade level a second time.
 const gradeLevelToNgssBand: Partial<Record<string, NgssGradeBand>> = {
   '6-8': '6-8',
-  '9-10': '9-12',
-  '11-12': '9-12',
+  '9-12': '9-12',
 }
 
 const ngssStandardsBank: NgssStandard[] = [
@@ -129,21 +136,42 @@ const ngssStandardsBank: NgssStandard[] = [
   },
   {
     code: 'HS-LS2-3',
-    description: 'Construct and revise an explanation based on evidence for the cycling of matter and flow of energy in ecosystems.',
+    description: 'Construct and revise an explanation based on evidence for the cycling of matter and flow of energy in aerobic and anaerobic conditions.',
     gradeBand: '9-12',
-    keywords: ['ecosystem', 'energy', 'matter', 'cycling', 'evidence'],
+    keywords: ['ecosystem', 'energy', 'matter', 'cycling', 'evidence', 'peat', 'permafrost', 'zombie fire'],
   },
   {
     code: 'HS-LS2-4',
     description: 'Use mathematical representations to support claims for the cycling of matter and flow of energy among organisms in an ecosystem.',
     gradeBand: '9-12',
-    keywords: ['ecosystem', 'energy', 'matter', 'mathematical'],
+    keywords: ['ecosystem', 'energy', 'matter', 'mathematical', 'zombie fire'],
+  },
+  {
+    code: 'HS-LS2-5',
+    description:
+      'Develop a model to illustrate the role of photosynthesis and cellular respiration in the cycling of carbon among the biosphere, atmosphere, hydrosphere, and geosphere.',
+    gradeBand: '9-12',
+    keywords: ['carbon cycle', 'biosphere', 'atmosphere', 'model', 'zombie fire'],
   },
   {
     code: 'HS-LS1-5',
     description: 'Use a model to illustrate how photosynthesis transforms light energy into stored chemical energy.',
     gradeBand: '9-12',
-    keywords: ['photosynthesis', 'energy', 'model', 'cells'],
+    keywords: ['photosynthesis', 'energy', 'model', 'cells', 'matter'],
+  },
+  {
+    code: 'HS-LS1-6',
+    description:
+      'Construct and revise an explanation based on evidence for how carbon, hydrogen, and oxygen from sugar molecules may combine with other elements to form amino acids and/or other large carbon-based molecules.',
+    gradeBand: '9-12',
+    keywords: ['carbon', 'matter', 'molecules', 'explanation', 'peat'],
+  },
+  {
+    code: 'HS-LS1-7',
+    description:
+      'Use a model to illustrate that cellular respiration is a chemical process whereby the bonds of food molecules and oxygen molecules are broken and the bonds in new compounds are formed resulting in a net transfer of energy.',
+    gradeBand: '9-12',
+    keywords: ['respiration', 'combustion', 'energy transfer', 'model', 'matter'],
   },
   {
     code: 'HS-PS3-1',
@@ -155,7 +183,14 @@ const ngssStandardsBank: NgssStandard[] = [
     code: 'HS-ESS2-6',
     description: 'Develop a quantitative model to describe the cycling of carbon among the hydrosphere, atmosphere, geosphere, and biosphere.',
     gradeBand: '9-12',
-    keywords: ['carbon', 'cycling', 'earth', 'model'],
+    keywords: ['carbon', 'cycling', 'earth', 'model', 'permafrost', 'zombie fire', 'wildfire'],
+  },
+  {
+    code: 'HS-ETS1-2',
+    description:
+      'Design a solution to a complex real-world problem by breaking it down into smaller, more manageable problems that can be solved through engineering.',
+    gradeBand: '9-12',
+    keywords: ['engineering', 'design', 'problem-solving', 'real-world', 'human impact'],
   },
 ]
 
@@ -176,15 +211,19 @@ const planningConversation = [
   },
   {
     role: 'teacher',
-    text: 'I want my high school biology students to model how energy flows through an ecosystem — from the sun through producers, consumers, and decomposers.',
+    text: 'I already have a model-based activity for our Zombie Fires unit, and I want to revise it so students think more deeply about how matter and energy move through the system — not just relabel their diagrams.',
   },
   {
     role: 'ai',
-    text: 'That’s a strong fit for Initial Modeling. Would you like students to build an initial model first, then revise it after examining new evidence — and explain how their model shows that energy is conserved but not recycled?',
+    text: 'That’s a strong fit for Model Revision. Right now, when students revise their models with new evidence, are they mostly adding new parts to the diagram, or actually changing how they explain the system?',
   },
   {
     role: 'teacher',
-    text: 'Yes. I also want them to argue for their modeling choices using evidence, not just describe the diagram.',
+    text: 'Mostly adding parts. How could I revise this activity so students think more deeply about how matter and energy move through the zombie fire system?',
+  },
+  {
+    role: 'ai',
+    text: 'You could ask students to revise their models after examining evidence about peat, smoke, CO₂, and seasonal changes. Instead of only adding new components, ask them to show where matter moves and where energy is transferred in the system. This can help make the mechanism visible in their models. Would you like me to suggest a specific revision to the model-revision activity?',
   },
 ] as const
 
@@ -197,340 +236,498 @@ const metricCards = [
 ]
 
 const dashboardTask = {
-  topic: 'Modeling Energy Flow in Ecosystems',
+  topic: 'Zombie Fires: Matter and Energy Flow',
   question:
-    'Prompt: Build a model showing how energy flows from the sun through producers, consumers, and decomposers. Then explain how your model shows that energy is conserved but not recycled.',
+    'Prompt: Develop a model that helps explain how zombie fires are burning under ice and releasing so much carbon. Your model should show how matter (peat) and energy (fire) flow between the biosphere and atmosphere, and what questions you still need to answer.',
 }
 
-type ClassTrend = {
+// Individual student evidence behind one class-level pattern row. `response`
+// is the student's written words; `artifact` is a short plain-language
+// description of their drawn model/diagram (this prototype has no real
+// image assets, so a model is represented as a descriptive caption rather
+// than an image). Either can be present alone, or both together.
+type StudentEvidence = {
+  name: string
+  response?: string
+  artifact?: string
+  // Path/URL to a real scanned student artifact (e.g. the attached zombie
+  // fires model). Distinct from `artifact`, which is always a plain-text
+  // caption — a student can have either, both, or neither.
+  artifactImage?: string
+}
+
+// One clickable row in any of the three summary sections. `kind` drives
+// which field (artifact vs. written response) the individual-evidence panel
+// leads with once a row is selected — Engagement in Science Practices
+// prioritizes the model/artifact; the other two lead with the response.
+type PatternRow = {
   id: string
   label: string
-  percent: number
   count: number
-  total: number
+  kind: 'objective' | 'practice' | 'misconception'
+  students: StudentEvidence[]
 }
 
-const classTrends: ClassTrend[] = [
-  { id: 'argumentation', label: 'Argumentation', percent: 78, count: 22, total: 28 },
-  { id: 'model-revision', label: 'Substantive model revision', percent: 43, count: 12, total: 28 },
-  { id: 'scientific-explanation', label: 'Scientific explanation', percent: 61, count: 17, total: 28 },
-  { id: 'use-of-evidence', label: 'Use of evidence', percent: 71, count: 20, total: 28 },
+// Section A — Learning Objective Overlap. One group per learning objective
+// entered on the Lesson Planning page (see `lessonSteps` — "Learning
+// Objective 1/2/3"); each group lists the distinct student ideas the class
+// produced in response to it, most-common first, with no percentage score.
+type LearningObjectiveGroup = { objective: string; ideas: PatternRow[] }
+
+const learningObjectiveOverlap: LearningObjectiveGroup[] = [
+  {
+    objective:
+      '1.A Obtain information about zombie fires to identify potential cause-and-effect relationships that lead to changes in the biosphere and atmosphere.',
+    ideas: [
+      {
+        id: 'lo1a-permafrost-thawing',
+        label: 'Identifies permafrost thawing as what lets the underground fire keep burning',
+        count: 16,
+        kind: 'objective',
+        students: [
+          {
+            name: 'Jordan P.',
+            response:
+              'My model shows the fire moving underground into the peat as the permafrost thaws. During winter, I think the fire keeps burning in the peat underneath the snow and ice, and then it can come back to the surface in spring.',
+            artifact:
+              'Seasonal diagram (Summer/Fall, Winter, Spring) showing an underground fire in peat/permafrost beneath snow, smoke/CO₂ rising to the atmosphere, and a fire scar from the previous season.',
+            artifactImage: ZOMBIE_FIRES_STUDENT_MODEL_IMAGE,
+          },
+          {
+            name: 'Lena M.',
+            response:
+              'I noticed warmer-than-average summer and fall temperatures come right before the fires start, so I drew an arrow connecting those two boxes in my model.',
+            artifact: 'Diagram with a labeled "warmer than average temperatures" box arrowed into a "fire" box.',
+          },
+        ],
+      },
+      {
+        id: 'lo1a-earlier-spring-fires',
+        label: 'Connects earlier-than-usual spring temperatures to new fires flaring up',
+        count: 11,
+        kind: 'objective',
+        students: [
+          {
+            name: 'Sofia R.',
+            response: 'When spring comes earlier than usual, the snow melts sooner and a fire flares back up in the same spot as last year.',
+            artifact: 'Model with a "Spring (earlier than usual)" panel showing fire flaring up from the same burn scar.',
+          },
+          {
+            name: 'Ethan R.',
+            response: 'I connected the earlier spring warming to the fire becoming visible again above ground.',
+          },
+        ],
+      },
+      {
+        id: 'lo1a-no-mechanism',
+        label: 'Notes zombie fires are unusual without identifying a cause',
+        count: 7,
+        kind: 'objective',
+        students: [
+          {
+            name: 'Noah T.',
+            response: 'These fires are weird because they don’t go out in the winter like normal fires do.',
+          },
+          { name: 'Grace L.', response: 'I just noted that this doesn’t happen with regular wildfires.' },
+        ],
+      },
+    ],
+  },
+  {
+    objective: '1.B Develop a model to explain how matter (peat) and energy (fire) flow in the zombie fire system.',
+    ideas: [
+      {
+        id: 'lo1b-matter-energy-labeled',
+        label: 'Model explicitly labels peat/permafrost as matter and fire as energy, both flowing to the atmosphere',
+        count: 12,
+        kind: 'objective',
+        students: [
+          {
+            name: 'Jordan P.',
+            response:
+              'I labeled the peat and permafrost as matter and the fire as energy, and drew arrows from both of them up into the smoke and CO₂ leaving through the atmosphere.',
+            artifact: 'Diagram with "(matter)" labeled next to peat/permafrost and "(energy)" labeled next to the underground fire, both arrowed up to smoke/CO₂.',
+            artifactImage: ZOMBIE_FIRES_STUDENT_MODEL_IMAGE,
+          },
+          {
+            name: 'Maya T.',
+            response: 'My model shows smoke coming out of the ground, but I didn’t say what part was matter and what part was energy.',
+          },
+        ],
+      },
+      {
+        id: 'lo1b-underground-persists',
+        label: 'Model shows fire burning underground beneath snow/ice throughout winter',
+        count: 13,
+        kind: 'objective',
+        students: [
+          {
+            name: 'Diego H.',
+            response: 'My model has a separate box for winter showing the fire still burning underground even though the surface is covered in snow.',
+            artifact: 'Model with a "Winter (very cold temperatures)" panel showing an underground fire icon beneath a snow layer.',
+          },
+          {
+            name: 'Priya S.',
+            response: 'I drew the snow on top and the fire underneath it, connected with a note saying the fire keeps going all winter.',
+          },
+        ],
+      },
+      {
+        id: 'lo1b-above-ground-only',
+        label: 'Model draws fire only above ground, without showing it persisting underground',
+        count: 6,
+        kind: 'objective',
+        students: [
+          {
+            name: 'Carlos M.',
+            response: 'I just drew flames and smoke coming from the ground without showing what was happening underneath.',
+          },
+          { name: 'Hannah W.', response: 'My model shows the fire, the smoke, and the snow, but not how they connect underground.' },
+        ],
+      },
+    ],
+  },
+  {
+    objective:
+      '1.C Ask questions to clarify how the flow of energy and matter in the atmosphere (CO₂/smoke) and biosphere (peat/permafrost) allows zombie fires to burn, including the role of humans.',
+    ideas: [
+      {
+        id: 'lo1c-human-role',
+        label: 'Asks how human activity might be making zombie fires more frequent',
+        count: 12,
+        kind: 'objective',
+        students: [
+          {
+            name: 'Zoe F.',
+            response: 'Is it something humans are doing that’s making the permafrost thaw more, or would this happen anyway?',
+          },
+          {
+            name: 'Liam O.',
+            response: 'Do zombie fires happen more in places where people log or build roads, or is it purely about temperature?',
+          },
+        ],
+      },
+      {
+        id: 'lo1c-carbon-amount',
+        label: 'Asks how much carbon zombie fires actually release compared to normal wildfires',
+        count: 9,
+        kind: 'objective',
+        students: [
+          {
+            name: 'Aisha K.',
+            response: 'How much CO₂ does a zombie fire release compared to a regular wildfire that burns and goes out?',
+          },
+          {
+            name: 'Marcus J.',
+            response: 'Does the carbon come mostly from the peat itself, or from something else in the permafrost?',
+          },
+        ],
+      },
+      {
+        id: 'lo1c-restated-fact',
+        label: 'Restates what’s already known rather than posing a new question',
+        count: 6,
+        kind: 'objective',
+        students: [
+          { name: 'Emma K.', response: 'Zombie fires burn underground in the winter and start again in spring.' },
+          { name: 'Grace L.', response: 'They release smoke and carbon dioxide into the air.' },
+        ],
+      },
+    ],
+  },
 ]
 
-type StudentExample = {
-  name: string
-  level: string
-  quote: string
-  note: string
-}
+// Section B — Engagement in Science Practices. One group per practice
+// offered on the Lesson Planning form (see `practiceOptions`), each listing
+// the specific ways students' models and responses demonstrated it.
+type PracticeGroup = { practice: string; patterns: PatternRow[] }
 
-const studentExamplesByTrend: Record<string, StudentExample[]> = {
-  argumentation: [
-    {
-      name: 'Maya T.',
-      level: 'Strong',
-      quote:
-        'I told my partner our model was more accurate because we showed energy leaving as heat at every arrow, and the data table backs that up.',
-      note: 'Defends a modeling choice using the class data table, not just opinion.',
-    },
-    {
-      name: 'Ethan R.',
-      level: 'Strong',
-      quote:
-        'My group argued that decomposers had to be included, because otherwise the matter in dead organisms would just vanish from the model — and that’s not what the reading said.',
-      note: 'Uses a counterexample from the reading to justify a modeling decision.',
-    },
-    {
-      name: 'Grace L.',
-      level: 'Developing',
-      quote: 'I think our model is right because it looks like the one in the textbook.',
-      note: 'Appeals to a familiar diagram rather than evidence or reasoning.',
-    },
-  ],
-  'model-revision': [
-    {
-      name: 'Jordan P.',
-      level: 'Strong',
-      quote:
-        'I added an arrow showing decomposers releasing energy as heat, because my first model made it look like decomposers stored all the leftover energy forever.',
-      note: 'Revised the model to fix a conservation-of-energy error, not just relabel it.',
-    },
-    {
-      name: 'Lena M.',
-      level: 'Strong',
-      quote:
-        'My first model stopped at the consumers, but after we read about decomposers I added them and an arrow showing energy still being lost as heat.',
-      note: 'Used new evidence to add a missing step in the energy pathway.',
-    },
-    {
-      name: 'Noah T.',
-      level: 'Developing',
-      quote: 'I just made my energy arrows thicker at the bottom of the model instead of changing what the model actually shows.',
-      note: 'Adjusted the model’s appearance without changing its structure or reasoning.',
-    },
-  ],
-  'scientific-explanation': [
-    {
-      name: 'Sofia R.',
-      level: 'Strong',
-      quote:
-        'Claim: energy is conserved but not recycled in our ecosystem. Evidence: our model shows energy leaving as heat at every arrow, and none of it flows back to the sun. Reasoning: once energy is used or lost as heat, it can’t be reused by the ecosystem the way matter can.',
-      note: 'Complete claim-evidence-reasoning structure distinguishing energy flow from matter cycling.',
-    },
-    {
-      name: 'Diego H.',
-      level: 'Strong',
-      quote:
-        'Energy keeps decreasing at each trophic level because organisms use most of the energy they get just to survive, so only a little is left for the next level to eat.',
-      note: 'Links the 10% rule to a causal mechanism, not just a pattern.',
-    },
-    {
-      name: 'Emma K.',
-      level: 'Developing',
-      quote: 'Energy is conserved because it just keeps going around the ecosystem forever.',
-      note: 'States a conclusion that confuses energy flow with matter cycling — a key misconception.',
-    },
-  ],
-  'use-of-evidence': [
-    {
-      name: 'Diego H.',
-      level: 'Strong',
-      quote:
-        'The class data table shows only about 10% of energy moves from producers to consumers, so that’s why our model has smaller arrows higher up.',
-      note: 'Cites the specific 10% figure from the data table to justify the model.',
-    },
-    {
-      name: 'Maya T.',
-      level: 'Strong',
-      quote:
-        'I used both the reading and the class data to show that decomposers release energy as heat, not back into the food chain.',
-      note: 'Synthesizes evidence across two different sources.',
-    },
-    {
-      name: 'Grace L.',
-      level: 'Developing',
-      quote: 'The data kind of shows that energy goes down the further you go in the food chain.',
-      note: 'References the data only in general terms, without a specific figure.',
-    },
-  ],
-}
+const scienceInPracticePatterns: PracticeGroup[] = [
+  {
+    practice: 'Develop and Use Models',
+    patterns: [
+      {
+        id: 'practice-models-system-components',
+        label: 'Models include key system components: peat/permafrost, underground fire, snow/ice, and smoke/CO₂',
+        count: 15,
+        kind: 'practice',
+        students: [
+          {
+            name: 'Jordan P.',
+            artifact:
+              'Diagram with seasonal panels (Summer/Fall, Winter, Spring) showing underground fire in peat/permafrost beneath snow, smoke/CO₂ rising to the atmosphere, and a fire scar from the previous season.',
+            artifactImage: ZOMBIE_FIRES_STUDENT_MODEL_IMAGE,
+            response: 'I made sure to include the peat, the permafrost, the underground fire, the snow, and the smoke/CO₂, since those are the main parts of the system.',
+          },
+          {
+            name: 'Marcus J.',
+            artifact: 'Diagram showing an underground fire box connected by arrows to a smoke/CO₂ cloud, with a separate snow layer on top.',
+          },
+        ],
+      },
+      {
+        id: 'practice-models-matter-energy-flows',
+        label: 'Models distinguish matter (peat) from energy (fire) and show both flowing to the atmosphere',
+        count: 11,
+        kind: 'practice',
+        students: [
+          {
+            name: 'Lena M.',
+            artifact: 'Model with arrows from a labeled "peat (matter)" box and a labeled "fire (energy)" box, both pointing up to the atmosphere.',
+            response: 'I labeled which parts of my model were matter and which were energy so it’s clear how each one moves.',
+          },
+          {
+            name: 'Priya S.',
+            artifact: 'Diagram showing separate arrows for matter and energy leaving the underground fire.',
+          },
+        ],
+      },
+      {
+        id: 'practice-models-seasonal-change',
+        label: 'Models represent how conditions change across seasons while the fire persists underground',
+        count: 8,
+        kind: 'practice',
+        students: [
+          {
+            name: 'Diego H.',
+            artifact: 'Model with three side-by-side panels for summer/fall, winter, and spring, each showing the underground fire in a different state.',
+            response: 'My model shows the same fire underground in every panel, just with different amounts of snow on top depending on the season.',
+          },
+          {
+            name: 'Sofia R.',
+            artifact: 'Model with a "Spring (earlier than usual)" panel showing the fire flaring back up above ground.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    practice: 'Construct Explanations',
+    patterns: [
+      {
+        id: 'practice-explanations-cer',
+        label: 'Explanation connects a claim about matter/energy flow to evidence from the model',
+        count: 13,
+        kind: 'practice',
+        students: [
+          {
+            name: 'Sofia R.',
+            response:
+              'Claim: the fire keeps burning underground all winter. Evidence: my model shows the fire still lit beneath the snow layer in the winter panel. Reasoning: the peat is insulated by the soil and snow, so it doesn’t need to be exposed to burn.',
+          },
+          {
+            name: 'Diego H.',
+            response: 'The fire can keep burning underground because the peat itself is the fuel, and it’s protected from the cold by the layers of soil and snow above it.',
+          },
+        ],
+      },
+      {
+        id: 'practice-explanations-specific-evidence',
+        label: 'Explanation cites a specific feature of the model (e.g., fire scar, permafrost thaw) as evidence',
+        count: 9,
+        kind: 'practice',
+        students: [
+          {
+            name: 'Maya T.',
+            response: 'I used the fire scar in my model as evidence that this same spot already burned once before, which is why it flares up again in spring.',
+          },
+          {
+            name: 'Aisha K.',
+            response: 'My model shows permafrost thawing right around the fire, and that thawed layer is what I think lets it keep spreading underground.',
+          },
+        ],
+      },
+      {
+        id: 'practice-explanations-claim-only',
+        label: 'Explanation states zombie fires are unusual without supporting reasoning',
+        count: 6,
+        kind: 'practice',
+        students: [
+          { name: 'Emma K.', response: 'Zombie fires are different because they don’t really go out.' },
+          { name: 'Carlos M.', response: 'These fires just keep coming back every year.' },
+        ],
+      },
+    ],
+  },
+  {
+    practice: 'Engage in Argument from Evidence',
+    patterns: [
+      {
+        id: 'practice-argument-defends-with-evidence',
+        label: 'Defends why the fire needs peat as fuel, using evidence from the model or reading',
+        count: 10,
+        kind: 'practice',
+        students: [
+          {
+            name: 'Ethan R.',
+            response: 'I told my partner the fire has to have something to burn underground, and the reading said peat is basically dried, compacted plant matter — that’s the fuel.',
+          },
+          {
+            name: 'Zoe F.',
+            response: 'My group argued that without the peat, there’d be nothing left to release the smoke and CO₂ we keep seeing in the images.',
+          },
+        ],
+      },
+      {
+        id: 'practice-argument-responds-to-counterexample',
+        label: 'Responds to a claim that spring fires are brand new fires, not the same one continuing',
+        count: 7,
+        kind: 'practice',
+        students: [
+          {
+            name: 'Liam O.',
+            response: 'When my partner said the spring fire was a new one, I pointed to the fire scar in the images being in the exact same spot as the previous fall.',
+          },
+          {
+            name: 'Marcus J.',
+            response: 'I explained that if it were a brand-new fire, there wouldn’t need to be a “zombie” fire at all — it’s the same fire that never fully went out.',
+          },
+        ],
+      },
+      {
+        id: 'practice-argument-appeals-to-agreement',
+        label: 'Agrees with a claim without evaluating the evidence',
+        count: 5,
+        kind: 'practice',
+        students: [
+          { name: 'Grace L.', response: 'I think our model is right because it looks like the picture from class.' },
+          { name: 'Noah T.', response: 'My partner said it was correct, so I went with it.' },
+        ],
+      },
+    ],
+  },
+]
+
+// Section C — Misconceptions found across student responses and models.
+const misconceptionPatterns: PatternRow[] = [
+  {
+    id: 'misconception-new-fire-each-spring',
+    label: 'Believes the spring fire is a brand-new fire rather than the same fire continuing underground',
+    count: 8,
+    kind: 'misconception',
+    students: [
+      { name: 'Emma K.', response: 'A new fire probably starts in spring once things dry out again.' },
+      { name: 'Carlos M.', response: 'I think the winter fire goes out, and then a different fire starts in the same spot later.' },
+    ],
+  },
+  {
+    id: 'misconception-no-matter-energy-distinction',
+    label: 'Treats peat and fire as the same thing rather than distinguishing matter (peat) from energy (fire)',
+    count: 6,
+    kind: 'misconception',
+    students: [
+      { name: 'Liam O.', response: 'The peat and the fire are kind of the same thing — the peat is just the fire underground.' },
+      { name: 'Priya S.', response: 'I didn’t really separate the peat from the fire in my model, they’re both just “the fire part.”' },
+    ],
+  },
+  {
+    id: 'misconception-common-everywhere',
+    label: 'Assumes zombie fires are common wherever wildfires occur, not a specific, increasing permafrost phenomenon',
+    count: 4,
+    kind: 'misconception',
+    students: [
+      {
+        name: 'Noah T.',
+        response: 'I figured most wildfires probably keep smoldering underground like this once the surface fire is out.',
+        artifact: 'Model showing underground burning beneath a generic forest, with no reference to permafrost or peat.',
+      },
+      { name: 'Hannah W.', response: 'I thought this happens with basically any big fire, not just fires in icy areas.' },
+    ],
+  },
+]
+
+// A flat lookup across all three sections, keyed by row id, so the
+// individual-evidence panel can resolve whichever row the teacher last
+// clicked regardless of which section it came from.
+const allPatternRows: Record<string, PatternRow> = Object.fromEntries(
+  [
+    ...learningObjectiveOverlap.flatMap((group) => group.ideas),
+    ...scienceInPracticePatterns.flatMap((group) => group.patterns),
+    ...misconceptionPatterns,
+  ].map((row) => [row.id, row]),
+)
 
 const suggestedQuestions = [
-  'What evidence in your model best supports the claim that energy is conserved but not recycled?',
-  'How does your model compare to the one we examined in the reading?',
-  'Which part of your model could be tested or revised with more data?',
-  'How could you explain your model to a classmate who thinks energy just disappears?',
+  'What evidence in your model best supports the claim that the underground fire keeps burning all winter?',
+  'How does your model show the difference between the peat (matter) and the fire (energy)?',
+  'Which part of your model could be tested or revised with more information?',
+  'How could you explain your model to a classmate who thinks the spring fire is a brand-new fire?',
 ]
 
-type QuickPrompt = { question: string; answer: string }
-
-const trendMisconceptions: Record<string, string> = {
-  argumentation:
-    'Several students defend a modeling choice by pointing to how familiar or "textbook" it looks, rather than to evidence or a mechanism. A few treat a partner’s agreement as proof, without checking whether the underlying reasoning holds up.',
-  'model-revision':
-    'A common misconception is that energy or matter can simply disappear from a system, so models often stop at consumers without decomposers or without any arrow showing energy leaving as heat.',
-  'scientific-explanation':
-    'A few responses treat energy as something that cycles back through the ecosystem the way matter does, rather than something that is ultimately lost as heat at each transfer.',
-  'use-of-evidence':
-    'Some students treat a general downward trend across trophic levels as evidence enough, without citing the specific percentage of energy transferred at each step.',
-}
-
-type TrendQuickPromptContent = {
-  patterns: string
-  whyNotMoreQuestion: string
-  whyNotMoreAnswer: string
-  strongVsDeveloping: string
-  evidenceUse: string
-}
-
-const trendQuickPromptContent: Record<string, TrendQuickPromptContent> = {
-  argumentation: {
-    patterns:
-      'Stronger responses defend a modeling choice by pointing to a specific data point or a counterexample from the reading. Weaker responses appeal to how familiar a model looks, or to a partner agreeing, rather than to evidence.',
-    whyNotMoreQuestion: 'Why might some students still be defending their models without evidence?',
-    whyNotMoreAnswer:
-      'Many students are used to describing what a model shows rather than arguing for it — pointing to evidence and weighing a counter-argument is a less familiar move than just explaining the diagram.',
-    strongVsDeveloping:
-      'Stronger responses name a specific data point or counterexample and address a rival explanation. Developing responses restate their claim more confidently without adding new evidence.',
-    evidenceUse:
-      'Most students who argue well cite the class data table directly. A few still treat a partner agreeing with them as if it were evidence.',
-  },
-  'model-revision': {
-    patterns:
-      'Students who substantively revise usually point to a specific new piece of evidence that changed their thinking. Students who don’t tend to make only cosmetic changes — different colors or thicker arrows — without changing what the model represents.',
-    whyNotMoreQuestion: 'Why might only 43% of students be substantively revising their models?',
-    whyNotMoreAnswer:
-      'Many students treat their first model as "done" once it looks complete, so revision reads as correcting a mistake rather than as a normal part of building a stronger explanation.',
-    strongVsDeveloping:
-      'Stronger responses name the exact piece of evidence that changed their model and explain what it fixed. Developing responses describe a visual change without connecting it to new evidence or reasoning.',
-    evidenceUse:
-      'Students revising substantively cite specific new data — like energy-loss figures — and tie it to a concrete change. Others revise without referencing any new evidence at all.',
-  },
-  'scientific-explanation': {
-    patterns:
-      'Strong explanations follow claim, evidence, and reasoning explicitly. Weaker ones state a claim and skip straight to a conclusion without explaining the mechanism in between.',
-    whyNotMoreQuestion: 'Why might only 61% of students be writing complete scientific explanations?',
-    whyNotMoreAnswer:
-      'Students often know the right claim but haven’t practiced spelling out the reasoning that connects evidence to that claim — that middle step is usually the one that gets skipped under time pressure.',
-    strongVsDeveloping:
-      'Stronger responses explicitly separate claim, evidence, and reasoning. Developing responses blend them into a single sentence or leave the reasoning step out entirely.',
-    evidenceUse:
-      'Strong explanations tie a specific piece of evidence to the reasoning step. Weaker ones mention evidence in passing without using it to justify the claim.',
-  },
-  'use-of-evidence': {
-    patterns:
-      'Students with strong evidence use cite specific numbers or ranges and often combine more than one source. Weaker responses gesture at "the data" as a whole without naming a figure.',
-    whyNotMoreQuestion: 'Why might only 71% of students be using evidence effectively?',
-    whyNotMoreAnswer:
-      'Some students can identify a general trend in the data but haven’t yet practiced pulling out the one specific number or data point that best supports their claim.',
-    strongVsDeveloping:
-      'Stronger responses cite an exact figure or range from the data. Developing responses describe the data only in general terms, like "it kind of goes down."',
-    evidenceUse:
-      'Students with strong evidence use synthesize more than one source — for example, the reading and the class data table together. Others rely on only one, described in general terms.',
-  },
-}
-
-function trendOpeningMessage(trend: ClassTrend): string {
-  const patternClauses: Record<string, string> = {
-    argumentation:
-      'students who back up their claims with evidence from those who rely on how familiar or convincing a model looks',
-    'model-revision':
-      'students who meaningfully revised their models from those who made only surface-level changes',
-    'scientific-explanation':
-      'students who connect claim, evidence, and reasoning from those who state a claim without explaining the mechanism',
-    'use-of-evidence':
-      'students who cite specific data from those who describe the data only in general terms',
-  }
-  const clause = patternClauses[trend.id] ?? `stronger and developing responses for ${trend.label.toLowerCase()}`
-  return `${trend.count} of ${trend.total} students demonstrated ${trend.label.toLowerCase()}. Looking across the student responses, several patterns distinguish ${clause}. What would you like to investigate?`
-}
-
-function trendQuickPrompts(trend: ClassTrend): QuickPrompt[] {
-  const content = trendQuickPromptContent[trend.id]
-  return [
-    { question: 'What patterns do you see across the class?', answer: content.patterns },
-    { question: content.whyNotMoreQuestion, answer: content.whyNotMoreAnswer },
-    { question: 'What distinguishes stronger and developing responses?', answer: content.strongVsDeveloping },
-    {
-      question: 'What common misconceptions appear?',
-      answer: trendMisconceptions[trend.id] ?? 'No specific misconception stands out across these responses.',
-    },
-    { question: 'How are students using evidence when revising their models?', answer: content.evidenceUse },
-  ]
-}
-
-// A fully scripted example teacher<->AI conversation for a trend, shown as
-// the starting point when a teacher opens "Analyze with AI" for that trend
-// instead of a single generic opener — it demonstrates class analytics ->
-// representative student evidence -> interpretation -> instructional
-// action, ending each AI turn with a reflective question rather than a
-// directive, so the teacher stays the one deciding what to do next. Kept
-// deliberately short (2-4 sentences per AI turn, one student example, one
-// short "Pattern:" line) so the full exchange fits without much scrolling.
-const trendExampleConversations: Partial<Record<string, ChatMessage[]>> = {
-  argumentation: [
-    { role: 'teacher', text: 'Show me a typical response and where students are struggling.' },
-    {
-      role: 'ai',
-      text: 'Typical response — Maya T.\n“I think our model is correct because the data table shows that less energy reaches each higher trophic level.”\n\nPattern: Students cite evidence but often don’t explain why it supports their claim.\n\nWhat do you think is causing this?',
-    },
-    {
-      role: 'teacher',
-      text: 'They understood the model but couldn’t explain how their evidence backed it up.',
-    },
-    {
-      role: 'ai',
-      text: 'Try reframing “How do you know?” as “What evidence convinced you, and why does it support your claim?”\n\nThis pushes students to explain the evidence-claim connection instead of only naming it. Would this fit how you facilitate discussion?',
-    },
+// Alternate sets of facilitation questions the teacher can cycle through
+// with "Regenerate Questions." Each set keeps the same length as the
+// current questions and stays grounded in the same three class-level
+// findings — Learning Objective Overlap, Engagement in Science Practices,
+// and Misconceptions — just from a different angle. Stands in for a real
+// generation call in this prototype.
+const alternateFacilitationQuestionSets: string[][] = [
+  [
+    'About a third of the class drew the fire only above ground — what would you ask them to reconsider first?',
+    'Which group used a specific piece of evidence, rather than a general statement, to explain how the fire persists?',
+    'Several students still describe the spring fire as a brand-new fire — how would you have them test that idea against the fire-scar evidence?',
+    'What would it take for a classmate to convince you their model is more accurate than yours?',
   ],
-  'scientific-explanation': [
-    { role: 'teacher', text: 'Show me a typical response and where students are struggling.' },
-    {
-      role: 'ai',
-      text: 'Typical response — Diego H.\n“Energy keeps moving through the ecosystem because organisms use it and pass it on.”\n\nPattern: Students understand energy flow, but many cite ideas without explaining how their evidence supports their reasoning.\n\nWhat do you think is causing this difficulty?',
-    },
-    {
-      role: 'teacher',
-      text: 'They had trouble explaining why their evidence supported their models.',
-    },
-    {
-      role: 'ai',
-      text: 'Try reframing “How do you know?” as “What evidence helped you decide, and why?”\n\nThis encourages students to connect evidence to reasoning. Would this fit how you facilitate discussion?',
-    },
+  [
+    'Your models mostly agree that the fire burns underground in winter — what evidence would make that claim more precise?',
+    'Where in your model did you revise something because of new evidence, rather than just to make it look neater?',
+    'If the peat is the matter and the fire is the energy, where does each one actually end up?',
+    'What question would you ask a group whose model doesn’t distinguish matter from energy at all?',
   ],
-}
-
-type FacilitationFocus = 'model-revision' | 'use-of-evidence' | 'misconceptions' | 'argumentation'
-
-const facilitationFocusOptions: { id: FacilitationFocus; label: string }[] = [
-  { id: 'model-revision', label: 'Focus on model revision' },
-  { id: 'use-of-evidence', label: 'Focus on use of evidence' },
-  { id: 'misconceptions', label: 'Address misconceptions' },
-  { id: 'argumentation', label: 'Encourage scientific argumentation' },
+  [
+    'Which learning objective from today do you think your model addresses least well right now?',
+    'What part of your model used the zombie fire images or readings most directly as evidence?',
+    'Where might someone confuse “the fire went out” with “the fire is still smoldering underground” in your explanation?',
+    'What is one question you’d add to the Driving Question Board if you had five more minutes?',
+  ],
 ]
 
-const facilitationFocusQuestionSets: Record<FacilitationFocus, string[]> = {
-  'model-revision': [
-    'What specific piece of evidence made you add or change a step in your energy-flow model?',
-    'What part of your original model do you think was already correct?',
-    'If you got one more data point about energy loss, what would you check next?',
-  ],
-  'use-of-evidence': [
-    'Which piece of evidence about energy transfer was hardest to interpret?',
-    'How do the reading and the class data agree or disagree about how much energy reaches each trophic level?',
-    'What additional data would make your evidence for energy loss more convincing?',
-  ],
-  misconceptions: [
-    'Where might energy seem to "disappear" or get "recycled" in your model, and how would you fix that?',
-    'What would you say to a classmate who thinks energy cycles back through the ecosystem the way matter does?',
-    'What data would prove or disprove that idea?',
-  ],
-  argumentation: [
-    'What evidence would someone who disagrees with your model point to?',
-    'How would you defend your model if a classmate challenged where you placed the decomposers?',
-    'What is the strongest counter-argument to your claim about energy loss, and how would you respond?',
-  ],
-}
+// Stands in for a real AI call: a canned reply that still reads as grounded
+// in the *currently selected* pattern — its label, student count, and a
+// couple of the actual student names — so switching patterns visibly
+// changes what "Deeper AI Analysis" talks about. When the teacher has
+// focused a specific student (via the comment action on their evidence
+// card), the reply narrows to that one student's actual words instead of
+// generalizing across the pattern.
+function mockDeeperAnalysisReply(pattern: PatternRow, question: string, focusedStudent?: StudentEvidence | null): string {
+  const lower = question.toLowerCase()
 
-function customFacilitationQuestions(requestText: string): string[] {
-  return [
-    `Based on that request — "${requestText}" — which specific evidence would you point to first, and why?`,
-    'What is one claim from today’s responses that needs stronger evidence, and how would you probe it?',
-    'How would you rewrite your claim to make the evidence you’re using explicit?',
-  ]
-}
-
-// A compact, two-line explanation of *why* AI proposed a given set of
-// facilitation questions — the specific pattern in student work that
-// prompted them, plus the instructional focus that follows from it. Shown
-// alongside the proposed questions so the evidence -> question link is
-// visible without adding full student-response cards.
-type FacilitationEvidenceBasis = { evidence: string; instructionalFocus: string }
-
-const facilitationFocusEvidence: Record<FacilitationFocus, FacilitationEvidenceBasis> = {
-  'model-revision': {
-    evidence: 'Several students changed how their model looks without citing new evidence for the change.',
-    instructionalFocus: 'Strengthen connections between evidence and model revisions.',
-  },
-  'use-of-evidence': {
-    evidence: 'Several students cited energy-transfer data but did not explain how the evidence supported their models.',
-    instructionalFocus: 'Strengthen connections between evidence and scientific reasoning.',
-  },
-  misconceptions: {
-    evidence: 'Several students described energy as cycling back through the ecosystem the way matter does.',
-    instructionalFocus: 'Address the energy-versus-matter-cycling misconception directly.',
-  },
-  argumentation: {
-    evidence: 'Several students stated a claim about their model without addressing a likely counter-argument.',
-    instructionalFocus: 'Strengthen argumentation by requiring a response to an alternative view.',
-  },
-}
-
-function customFacilitationEvidence(requestText: string): FacilitationEvidenceBasis {
-  return {
-    evidence: `Several student responses relate to “${requestText}.”`,
-    instructionalFocus: 'Refine facilitation questions to target this pattern directly.',
+  if (focusedStudent) {
+    const excerpt = focusedStudent.response ?? focusedStudent.artifact ?? 'their submission'
+    if (lower.includes('differ')) {
+      return `${focusedStudent.name}'s work stands out from the rest of “${pattern.label}” mainly in how directly it commits to one idea — “${excerpt}” — rather than hedging between two explanations the way several classmates do.`
+    }
+    if (lower.includes('investigate')) {
+      return `I'd ask ${focusedStudent.name} to walk through “${excerpt}” out loud — that will tell you whether the idea is fully reasoned through or just phrased confidently.`
+    }
+    if (lower.includes('pattern')) {
+      return `${focusedStudent.name}'s response — “${excerpt}” — is a clean example of the pattern behind “${pattern.label},” stated more explicitly than most of the group.`
+    }
+    return `Looking specifically at ${focusedStudent.name}'s work — “${excerpt}” — that's worth following up on directly with them rather than generalizing to the rest of “${pattern.label}.”`
   }
+
+  const sampleNames = pattern.students.slice(0, 2).map((student) => student.name)
+  const namesText = sampleNames.length === 2 ? `${sampleNames[0]} and ${sampleNames[1]}` : sampleNames[0] ?? 'this group'
+
+  if (lower.includes('differ')) {
+    return `Within “${pattern.label},” most of the ${pattern.count} students converge on the same core idea, but ${namesText} show the clearest gap in how they justify it — some lean on the data table, others on the model's arrows alone. That's the axis I'd probe first.`
+  }
+  if (lower.includes('investigate')) {
+    return `I'd start with whether the ${pattern.count} students behind “${pattern.label}” can defend their idea with evidence, not just state it — try that with ${namesText} first and see how far the reasoning actually goes.`
+  }
+  if (lower.includes('pattern')) {
+    return `Across the ${pattern.count} students here, the strongest pattern is how closely their language echoes the class reading — ${namesText}, for example, reuse almost the same phrasing, which suggests the idea may be memorized rather than reasoned through yet.`
+  }
+  return `Based on the ${pattern.count} responses behind “${pattern.label}” — including ${namesText} — that's a good question for a small-group check-in rather than whole-class discussion, since the pattern isn't shared by everyone.`
+}
+
+// Shown as an AI-authored line in the conversation itself, right after the
+// teacher clicks the comment/"Ask AI" action on one student's evidence card
+// — this is the "indication" that Deeper AI Analysis has narrowed its
+// context to that one student rather than the whole pattern.
+function buildStudentFocusNote(student: StudentEvidence): string {
+  const excerpt = student.response ?? student.artifact ?? 'their submission'
+  const kind = student.response ? 'response' : 'model'
+  return `🔍 Now focusing on ${student.name}'s ${kind}: “${excerpt}” Ask a follow-up and I'll center the answer on this one student.`
 }
 
 // `bold` marks an epistemic-practice term (existing convention). `added`
@@ -546,35 +743,60 @@ function customFacilitationEvidence(requestText: string): FacilitationEvidenceBa
 // changes for that same section (same pedagogical opportunity, two states).
 type LessonSegment = { text: string; bold?: boolean; added?: boolean; flagged?: boolean }
 
-type LessonVersion = 'original' | 'suggestions' | 'revised'
 type LessonSource = 'ai-generated' | 'uploaded'
-
-const lessonVersionLabels: Record<LessonVersion, string> = {
-  original: 'Original',
-  suggestions: 'AI Suggestions',
-  revised: 'AI Revised',
-}
 
 const lessonSourceLabels: Record<LessonSource, string> = {
   'ai-generated': 'AI Generated',
   uploaded: 'Teacher Uploaded',
 }
 
+// Manual edits aside, there are two independent tracks here, not one:
+//   1. The teacher-approved WORKING lesson (Generated + Suggestions) —
+//      driven entirely by editor.revisedLesson, which only ever changes in
+//      response to the teacher explicitly clicking Apply Change in the
+//      conversational chat. A section is highlighted there only once the
+//      teacher has actually accepted a change for it.
+//   2. The PREDEFINED comparison (Revised) — for any section that carries
+//      an AI suggestion, Revised always shows AI's own baseline revision of
+//      it (lessonRevisions/lessonRevisionSegments), fully incorporated,
+//      regardless of whether the teacher has touched that section's chat at
+//      all. It exists so "AI Suggestions" (what AI recommends) and
+//      "Revised" (what the lesson looks like if AI's recommendations are
+//      incorporated) are directly, one-to-one comparable — Revised is never
+//      gated behind Apply Change.
+// Manual edits (Edit Lesson) still win everywhere, on both tracks, since
+// that's the teacher's own final wording regardless of either AI track.
+//   - generated: the working lesson (track 1) — an applied/edited section is
+//     highlighted; an un-applied one reads as plain original text, and
+//     never flags a still-pending suggestion (that's Suggestions-only).
+//   - suggestions: the working lesson (track 1), PLUS pending AI
+//     suggestions are flagged and clickable here (Ask AI about this).
+//   - revised: the predefined comparison (track 2) — every suggested
+//     section shows AI's baseline revision, highlighted, from the moment
+//     the lesson is generated, independent of Apply Change.
+type LessonTab = 'generated' | 'suggestions' | 'revised'
+
+const lessonTabLabels: Record<LessonTab, string> = {
+  generated: 'Generated',
+  suggestions: 'AI Suggestions',
+  revised: 'Revised',
+}
+
 // Lesson Overview: Title, Grade Level, and Total Duration (the per-phase
 // breakdown lives inline on each 5E phase below — see `duration` on
 // lessonSteps — so this one line is the only place total time is stated).
 const lessonMeta = [
-  'Lesson Title: Modeling Energy Flow in Ecosystems',
-  'Grade Level: 9th Grade Biology',
-  'Total Duration: 55 minutes',
+  'Lesson Title: Zombie Fires: Matter and Energy Flow (Lesson 1)',
+  'Grade Level: Grades 9–12',
+  'Total Duration: 60 minutes',
 ]
 
 const lessonPractices = [
+  'Obtaining Information',
+  'Cause-and-Effect Reasoning',
   'Initial Modeling',
-  'Use of Evidence',
-  'Argumentation',
-  'Model Revision',
-  'Scientific Explanation',
+  'Matter and Energy Flow',
+  'Asking Questions',
 ]
 
 // A complete science lesson-plan structure, ordered the way a teacher scans
@@ -613,7 +835,7 @@ const lessonSteps: {
     sectionHeading: 'Standards & Learning Objectives',
     segments: [
       {
-        text: 'NGSS HS-LS2-3 — Construct and revise an explanation based on evidence for the cycling of matter and flow of energy in ecosystems.',
+        text: 'NGSS HS-LS2-3, HS-LS2-4, HS-LS2-5, HS-ESS2-6 — Construct and revise explanations, and develop models, for the cycling of matter and flow of energy between the biosphere and atmosphere.',
       },
     ],
   },
@@ -624,24 +846,26 @@ const lessonSteps: {
   {
     label: 'Learning Objective 1',
     leadIn: 'By the end of the lesson, students will be able to:',
-    displayPrefix: '1.',
+    displayPrefix: '1.A',
     segments: [
       {
-        text: 'Construct an initial model showing energy flow from the sun through producers, consumers, and decomposers.',
+        text: 'Obtain information about zombie fires to identify potential cause-and-effect relationships that lead to changes in the biosphere and atmosphere.',
       },
     ],
   },
   {
     label: 'Learning Objective 2',
-    displayPrefix: '2.',
-    segments: [{ text: 'Use evidence to explain why energy availability decreases at higher trophic levels.' }],
+    displayPrefix: '1.B',
+    segments: [{ text: 'Develop a model to explain how matter (peat) and energy (fire) flow in the zombie fire system.' }],
   },
   {
     label: 'Learning Objective 3',
-    displayPrefix: '3.',
+    displayPrefix: '1.C',
     afterSection: 'practices',
     segments: [
-      { text: 'Revise their model based on new evidence and explain how energy is conserved but not recycled.' },
+      {
+        text: 'Ask questions to clarify how the flow of energy and matter in the atmosphere (CO₂/smoke) and biosphere (peat/permafrost) allows zombie fires to burn, including the role of humans.',
+      },
     ],
   },
   {
@@ -649,19 +873,19 @@ const lessonSteps: {
     sectionHeading: 'Materials & Equipment',
     listStyle: 'bullet',
     segments: [
-      { text: 'Energy-flow model worksheet or poster paper' },
+      { text: 'Zombie fire photographs and a short video clip (satellite imagery, burn scars, smoke plumes)' },
+      { text: 'Student handout: "How are zombie fires burning under ice and releasing so much carbon?"' },
+      { text: 'Poster paper or a modeling worksheet for initial models' },
       { text: 'Colored markers' },
-      { text: 'Class data table showing percent energy transfer between trophic levels' },
-      { text: 'Short reading on the 10% rule' },
-      { text: 'Sticky notes for evidence annotations' },
+      { text: 'Sticky notes for cause-and-effect claims and questions' },
     ],
   },
   {
     label: 'Equipment & Technology',
     listStyle: 'bullet',
     segments: [
-      { text: 'Document camera or projector to share student models' },
-      { text: 'Class set of tablets or laptops for groups to build digital models', flagged: true },
+      { text: 'Document camera or projector to share zombie fire images and student models' },
+      { text: 'Class set of tablets or laptops for groups to research zombie fire images and video', flagged: true },
     ],
   },
   {
@@ -672,10 +896,10 @@ const lessonSteps: {
     label: 'Engage',
     duration: 5,
     segments: [
-      { text: 'Teacher opens with ' },
-      { text: 'a short overview of how energy and matter move through an ecosystem', flagged: true },
+      { text: 'Teacher shows ' },
+      { text: 'photographs and a short video clip of zombie fires burning under snow and ice', flagged: true },
       {
-        text: ', and previews the question students will need to answer with their model: How does your model show that energy is conserved but not recycled?',
+        text: ', then poses the driving question students will investigate throughout the lesson: How are zombie fires burning under ice and releasing so much carbon?',
       },
     ],
   },
@@ -683,10 +907,14 @@ const lessonSteps: {
     label: 'Explore',
     duration: 15,
     segments: [
-      { text: 'Students construct an initial ' },
-      { text: 'model', bold: true, flagged: true },
+      { text: 'In small groups, students ' },
+      { text: 'obtain information', bold: true, flagged: true },
       {
-        text: ' that traces energy from the sun through producers, consumers, and at least one decomposer, using arrows to show the direction of energy transfer, the energy lost as heat at each step, and why less energy is available at higher trophic levels.',
+        text: ' about zombie fires — including satellite images, burn scars, and short readings about when and where they occur — and identify possible ',
+      },
+      { text: 'cause-and-effect relationships', bold: true },
+      {
+        text: ' involving changes in the biosphere and atmosphere, such as what seasonal conditions seem to come before a zombie fire appears.',
       },
     ],
   },
@@ -694,25 +922,24 @@ const lessonSteps: {
     label: 'Explain',
     duration: 10,
     segments: [
+      { text: 'Students construct an ' },
+      { text: 'initial model', bold: true, flagged: true },
       {
-        text: 'Students read a short article explaining the 10% rule — that only about 10% of energy is transferred from one trophic level to the next — and ',
+        text: ' of the zombie fire system that may include peat/permafrost, underground fire, snow/ice, smoke/CO₂, and the seasons in which each part is active — representing their current thinking about how matter and energy move through the system, not yet the finished explanation.',
       },
-      { text: 'identify ', flagged: true },
-      { text: 'evidence', bold: true, flagged: true },
-      { text: ' in the reading for why less energy is available at higher trophic levels.', flagged: true },
     ],
   },
   {
     label: 'Elaborate',
     duration: 15,
     segments: [
-      { text: 'In small groups, students ' },
-      { text: 'argue', bold: true },
+      { text: 'In small groups, students share their initial models and ' },
+      { text: 'reason', bold: true },
       {
-        text: ' about which parts of their initial models are supported by the new evidence and which require revision. Students then ',
+        text: ' about how matter (peat) and energy (fire) flow through the system and how an underground fire could persist through winter beneath snow and ice. Students then ',
       },
       { text: 'revise their models', bold: true },
-      { text: ' to reflect the evidence and ' },
+      { text: ' to reflect this reasoning and ' },
       { text: 'annotate at least one change explaining why they made it.', flagged: true },
     ],
   },
@@ -721,10 +948,10 @@ const lessonSteps: {
     duration: 5,
     segments: [
       {
-        text: 'Teacher circulates during group work with a short checklist, listening for two things: whether a student names a specific piece of evidence for their claim, and whether they can say what they changed in their model and why. ',
+        text: 'Teacher circulates during group work with a short checklist, listening for two things: whether a student distinguishes matter (peat) from energy (fire) in their reasoning, and whether they can explain how the underground fire persists through winter. ',
       },
       {
-        text: 'Two or three groups briefly share one revision and the evidence behind it with the whole class before moving on.',
+        text: 'Two or three groups briefly share one part of their model and the reasoning behind it with the whole class before moving on.',
         flagged: true,
       },
     ],
@@ -732,14 +959,14 @@ const lessonSteps: {
   {
     label: 'Assessment',
     segments: [
-      { text: 'Students write a scientific ' },
-      { text: 'explanation', bold: true },
+      { text: 'Students ' },
+      { text: 'ask questions', bold: true },
       {
-        text: ', based on their revised model, answering the question: How does your model show that energy is conserved but not recycled? ',
+        text: ' to clarify what they still need to understand about the flow of energy and matter between the atmosphere (CO₂/smoke) and biosphere (peat/permafrost), including the role of humans in zombie fires becoming more common. ',
       },
-      { text: 'This is collected and graded as the lesson’s summative assessment.', flagged: true },
+      { text: 'These questions are collected and added to a class Driving Question Board to guide the lessons that follow.', flagged: true },
       {
-        text: ' Look for: a claim, at least one specific piece of evidence from the model or data table, and reasoning that connects the two.',
+        text: ' Look for: at least one question connected to matter or energy flow, and one question about cause and effect (including human influence).',
       },
     ],
   },
@@ -760,21 +987,21 @@ function DurationBadge({ duration }: { duration?: number }) {
 
 const lessonSuggestions: Record<string, string> = {
   'Crosscutting Concept':
-    'This names the crosscutting concept but doesn’t yet say why it matters here. Consider adding a short line connecting it to the specific distinction this lesson hinges on — that energy flows one direction while matter cycles — so students see the concept as a lens for the model, not just a label.',
+    'This names the crosscutting concept but doesn’t yet say why it matters here. Consider adding a short line connecting it to the specific distinction this lesson hinges on — that peat is the matter that fuels the fire, while the fire itself releases energy — so students see the concept as a lens for their model, not just a label.',
   'Equipment & Technology':
-    'Listing tablets or laptops as a requirement could leave the activity inaccessible if your classroom doesn’t have reliable device access. Consider offering a low-tech alternative — poster paper and markers — as the default, with digital tools as an optional upgrade rather than a requirement.',
+    'Listing tablets or laptops as a requirement could leave the activity inaccessible if your classroom doesn’t have reliable device access. Consider offering a low-tech alternative — printed zombie fire photos and poster paper — as the default, with digital research tools as an optional upgrade rather than a requirement.',
   Engage:
-    'Right now, this opens by previewing the assessment question, so students may complete the modeling activity by simply reproducing a familiar ecosystem/energy-flow diagram without reasoning about mechanism, evidence, or explanatory purpose. Consider opening instead with an authentic driving question, such as: "Our school/community produces waste every day. Where does that matter go—and where does it come from in the first place?" This gives students a real phenomenon to investigate, with their model as an explanatory tool rather than something to reproduce.',
+    'Right now, this moves straight from the images to the driving question, so students may treat the model as reproducing what they see rather than investigating a genuine mystery. Consider opening instead by first asking students what they notice and wonder about the images and video, before revealing the driving question — this positions the phenomenon as something to investigate, not simply illustrate.',
   Explore:
-    'As written, this risks becoming a one-and-done diagram — students may reproduce a familiar energy-flow picture without reasoning about mechanism, evidence, or purpose. Frame it explicitly as an Initial Model representing students’ current ideas, which they will return to and revise later in the lesson once they have new evidence — positioning them as knowledge builders, not just diagram-makers.',
+    'As written, this could become a quick fact-gathering exercise rather than real cause-and-effect reasoning. Consider having each group record their cause-and-effect claims on sticky notes, so those claims can be tested and revisited once students build and reason through their model.',
   Explain:
-    'Consider having students flag one piece of evidence from the reading that they predict will either support or challenge their initial model, so they have something concrete to return to later, during Elaborate.',
+    'Consider framing this explicitly as an Initial Model representing students’ current ideas, which they will return to and revise later in the lesson once they’ve reasoned through matter and energy — positioning them as knowledge builders, not just diagram-makers.',
   Elaborate:
-    'This already asks students to argue and then revise, which is exactly the progression you want — but the annotation could be more specific. Consider asking students to name the exact piece of evidence in their annotation, not just note that something changed, so the connection between evidence and revision is explicit and easy to assess.',
+    'This already asks students to reason and then revise, which is exactly the progression you want — but the annotation could be more specific. Consider asking students to name whether each revision is about matter, energy, or a cause-and-effect relationship, so the connection to the learning objectives is explicit and easy to assess.',
   Evaluate:
-    'This check is a good instinct, but without something specific to listen for, it’s easy to default to checking whether the diagram looks complete rather than whether students can justify it. Consider giving yourself a short checklist of exactly two things to listen for as you circulate.',
+    'This check is a good instinct, but without something specific to listen for, it’s easy to default to checking whether the diagram looks complete rather than whether students distinguish matter from energy. Consider giving yourself a short checklist of exactly two things to listen for as you circulate.',
   Assessment:
-    'As written, this is entirely summative — students only find out how they did after the lesson ends, with no chance to act on feedback. Consider adding a quick formative checkpoint earlier in the lesson (during Elaborate) so students can adjust their thinking before the graded explanation, rather than only being assessed at the very end.',
+    'As written, this lesson ends without resolving the phenomenon — which is appropriate for Lesson 1, but make sure the questions students generate are specific enough to act on. Consider having each group post their top question to a shared Driving Question Board so the class can track which ones get answered as the unit progresses.',
 }
 
 // The AI Revised baseline for each section. This is the teacher's ORIGINAL
@@ -791,89 +1018,85 @@ const lessonRevisionSegments: Record<string, readonly LessonSegment[]> = {
   'Crosscutting Concept': [
     { text: 'Energy and Matter: Flows, Cycles, and Conservation.' },
     {
-      text: ' This lesson asks students to distinguish energy flow, which moves in one direction and is lost as heat, from matter cycling, which is conserved and reused.',
+      text: ' This lesson asks students to distinguish peat as the matter that fuels the fire from the energy the fire releases as heat, smoke, and CO₂.',
       added: true,
     },
   ],
   'Equipment & Technology': [
-    { text: 'Document camera or projector to share student models' },
-    { text: 'Class set of tablets or laptops for groups to build digital models' },
+    { text: 'Document camera or projector to share zombie fire images and student models' },
+    { text: 'Class set of tablets or laptops for groups to research zombie fire images and video' },
     {
-      text: 'Poster paper and markers are a sufficient low-tech alternative to the tablets/laptops above — treat digital modeling as optional, not required.',
+      text: 'Printed zombie fire photos and poster paper are a sufficient low-tech alternative to the tablets/laptops above — treat digital research tools as optional, not required.',
       added: true,
     },
   ],
   Engage: [
-    { text: 'Teacher opens with ' },
+    { text: 'Teacher shows photographs and a short video clip of zombie fires burning under snow and ice' },
+    { text: ', first asking students what they notice and wonder,', added: true },
     {
-      text: 'an authentic driving question — "Our school/community produces waste every day. Where does that matter go—and where does it come from in the first place?"',
-      added: true,
-    },
-    {
-      text: ' — then previews the question students will need to answer with their model: How does your model show that energy is conserved but not recycled?',
+      text: ' then poses the driving question students will investigate throughout the lesson: How are zombie fires burning under ice and releasing so much carbon?',
     },
   ],
   Explore: [
-    { text: 'Students construct an ' },
-    { text: 'Initial Model', bold: true, added: true },
+    { text: 'In small groups, students ' },
+    { text: 'obtain information', bold: true },
     {
-      text: ' that traces energy from the sun through producers, consumers, and at least one decomposer, using arrows to show the direction of energy transfer, the energy lost as heat at each step, and why less energy is available at higher trophic levels.',
+      text: ' about zombie fires — including satellite images, burn scars, and short readings about when and where they occur — and identify possible ',
+    },
+    { text: 'cause-and-effect relationships', bold: true },
+    {
+      text: ' involving changes in the biosphere and atmosphere, such as what seasonal conditions seem to come before a zombie fire appears.',
     },
     {
-      text: ' Students who need a starting point can use a template with the sun and three labeled boxes for producer, consumer, and decomposer.',
+      text: ' Each group records its cause-and-effect claims on sticky notes to revisit once they build their model.',
       added: true,
     },
   ],
   Explain: [
+    { text: 'Students construct an ' },
+    { text: 'Initial Model', bold: true, added: true },
     {
-      text: 'Students read a short article explaining the 10% rule — that only about 10% of energy is transferred from one trophic level to the next — and identify ',
-    },
-    { text: 'evidence', bold: true },
-    { text: ' in the reading for why less energy is available at higher trophic levels.' },
-    {
-      text: ' Students then flag that evidence and predict whether it will support or challenge their initial model, underlining the sentence and writing a one-line prediction in the margin.',
-      added: true,
+      text: ' of the zombie fire system that may include peat/permafrost, underground fire, snow/ice, smoke/CO₂, and the seasons in which each part is active — representing their current thinking about how matter and energy move through the system, not yet the finished explanation.',
     },
   ],
   Elaborate: [
-    { text: 'In small groups, students ' },
-    { text: 'argue', bold: true },
+    { text: 'In small groups, students share their initial models and ' },
+    { text: 'reason', bold: true },
     {
-      text: ' about which parts of their initial models are supported by the new evidence and which require revision. Students then ',
+      text: ' about how matter (peat) and energy (fire) flow through the system and how an underground fire could persist through winter beneath snow and ice. Students then ',
     },
     { text: 'revise their models', bold: true },
-    { text: ' to reflect the evidence' },
+    { text: ' to reflect this reasoning' },
     {
-      text: ', annotating each change with the sentence starter "I changed ___ because the data showed ___" so the evidence behind the revision is explicit.',
+      text: ', annotating each change with the sentence starter "I changed ___ because it explains ___ (matter / energy / a cause-and-effect relationship)" so the connection is explicit.',
       added: true,
     },
   ],
   Evaluate: [
     {
-      text: 'Teacher circulates during group work with a short checklist, listening for two things: whether a student names a specific piece of evidence for their claim, and whether they can say what they changed in their model and why. Two or three groups briefly share one revision and the evidence behind it with the whole class before moving on.',
+      text: 'Teacher circulates during group work with a short checklist, listening for two things: whether a student distinguishes matter (peat) from energy (fire) in their reasoning, and whether they can explain how the underground fire persists through winter. Two or three groups briefly share one part of their model and the reasoning behind it with the whole class before moving on.',
     },
     {
-      text: ' This quick check flags who may need support before the written explanation.',
+      text: ' This quick check flags who may need support before generating their questions.',
       added: true,
     },
   ],
   Assessment: [
     { text: 'Students ' },
     {
-      text: 'exchange a quick draft claim with a partner during Elaborate for ungraded feedback, then ',
+      text: 'exchange their initial model with a partner for a quick round of feedback, then ',
       added: true,
     },
-    { text: 'write a scientific ' },
-    { text: 'explanation', bold: true },
+    { text: 'ask questions', bold: true },
     {
-      text: ', based on their revised model, answering the question: How does your model show that energy is conserved but not recycled? ',
+      text: ' to clarify what they still need to understand about the flow of energy and matter between the atmosphere (CO₂/smoke) and biosphere (peat/permafrost), including the role of humans in zombie fires becoming more common. These questions are collected and added to a class Driving Question Board to guide the lessons that follow.',
     },
     {
-      text: 'The draft exchange serves as a formative check; the final explanation is collected as the summative assessment.',
+      text: ' Each group posts its top question to the board so the class can track which ones get answered as the unit progresses.',
       added: true,
     },
     {
-      text: ' Look for: a claim, at least one specific piece of evidence from the model or data table, and reasoning that connects the two.',
+      text: ' Look for: at least one question connected to matter or energy flow, and one question about cause and effect (including human influence).',
     },
   ],
 }
@@ -884,59 +1107,58 @@ const lessonRevisions: Record<string, string> = Object.fromEntries(
 
 const chatSuggestionSummary: Record<string, string> = {
   'Crosscutting Concept':
-    'connecting the crosscutting concept explicitly to the energy-flow-versus-matter-cycling distinction this lesson hinges on',
+    'connecting the crosscutting concept explicitly to the peat-as-matter vs. fire-as-energy distinction this lesson hinges on',
   'Equipment & Technology':
-    'offering a low-tech, poster-and-markers alternative as the default instead of requiring tablets or laptops',
+    'offering printed zombie fire photos and poster paper as the default instead of requiring tablets or laptops',
   Engage:
-    'opening with an authentic driving question about where the school’s waste and matter come from, instead of previewing the assessment question',
-  Explore: 'framing this as an Initial Model students will revisit later, and offering a starter template so a blank page doesn’t stall them',
-  Explain: 'having students flag one piece of evidence from the reading that they predict will support or challenge their initial model',
-  Elaborate: 'asking students to name the exact piece of evidence in their annotation, not just describe what changed',
-  Evaluate: 'giving yourself a short two-item checklist — a specific piece of evidence, and what changed and why — to listen for while circulating',
-  Assessment: 'adding an earlier, ungraded peer-feedback checkpoint before the final graded explanation, so the assessment isn’t only summative',
+    'opening with what students notice and wonder about the images and video, before revealing the driving question',
+  Explore: 'having groups record their cause-and-effect claims on sticky notes to revisit once they build their model',
+  Explain: 'framing this as an Initial Model students will revisit later, once they’ve reasoned through matter and energy',
+  Elaborate: 'asking students to name whether each revision is about matter, energy, or a cause-and-effect relationship',
+  Evaluate: 'giving yourself a short two-item checklist — matter vs. energy, and how the fire persists — to listen for while circulating',
+  Assessment: 'adding a peer round of feedback on the initial model before students generate and post their questions to a Driving Question Board',
 }
 
 const stepWorkflow: Record<string, { teacherFollowUp: string; aiProposal: string }> = {
   'Crosscutting Concept': {
-    teacherFollowUp: 'Can you connect this to why energy and matter behave differently in this lesson?',
+    teacherFollowUp: 'Can you connect this to why matter and energy behave differently in this lesson?',
     aiProposal:
-      'Add a line noting that this lesson asks students to distinguish energy flow, which is one-directional and lost as heat, from matter cycling, which is conserved and reused — that’s the core idea the crosscutting concept is pointing at here.',
+      'Add a line noting that this lesson asks students to distinguish peat, the matter that fuels the fire, from the energy the fire releases as heat, smoke, and CO₂ — that’s the core idea the crosscutting concept is pointing at here.',
   },
   'Equipment & Technology': {
     teacherFollowUp: "I don't have access to this equipment.",
     aiProposal:
-      'No problem — poster paper, markers, and the printed data table are enough to run the full activity. Skip the digital modeling tool entirely; a document camera, or just holding models up to the class, works fine for sharing.',
+      'No problem — printed zombie fire photos, poster paper, and markers are enough to run the full activity. Skip the digital research tools entirely; a document camera, or just holding models up to the class, works fine for sharing.',
   },
   Engage: {
-    teacherFollowUp:
-      "I like that, but I don't want it to feel disconnected from the biology. How do I tie it back to energy and matter?",
+    teacherFollowUp: "I like that, but I want students to really investigate, not just watch. How do I make that happen?",
     aiProposal:
-      'Right after students react to the waste question, ask them to name where they think the matter and energy in that waste originally came from — that’s the thread they’ll trace all the way to the sun in their model.',
+      'Before revealing the driving question, ask students to turn and talk about what they notice and wonder from the images and video — that gives them ownership of the mystery before you name it.',
   },
   Explore: {
-    teacherFollowUp: 'Some of my students freeze up with a blank page — can I give them a starter structure?',
+    teacherFollowUp: 'Some groups jump straight to conclusions without real evidence — can I slow that down?',
     aiProposal:
-      'Yes — give them a simple starter template with the sun and three empty boxes labeled producer, consumer, and decomposer, and ask them to add arrows and labels showing energy transfer and loss between each.',
+      'Yes — have each group write their cause-and-effect claims on sticky notes, one claim per note, before moving on. That makes their thinking visible and easy to revisit once they build their model.',
   },
   Explain: {
     teacherFollowUp: "That's a good idea, but I don't want it to feel like a worksheet. Can it stay lightweight?",
     aiProposal:
-      'We can keep it simple — students just underline one sentence in the article about energy transfer and write a one-line prediction about whether their model already shows that idea.',
+      'We can keep it simple — students just need three labeled boxes (peat/permafrost, underground fire, atmosphere) and arrows showing what they think moves between them. It doesn’t need to be polished yet.',
   },
   Elaborate: {
-    teacherFollowUp: 'How can I make sure the annotation actually connects to evidence, not just describes what changed?',
+    teacherFollowUp: 'How can I make sure the annotation actually connects to matter or energy, not just describe what changed?',
     aiProposal:
-      'Have students finish the sentence "I changed ___ because the data showed ___" for their annotation — that structure forces them to name the evidence, not just describe the visual change.',
+      'Have students finish the sentence "I changed ___ because it explains ___" and require them to name whether that blank is about matter, energy, or a cause-and-effect relationship — that structure forces the connection.',
   },
   Evaluate: {
     teacherFollowUp: 'I like that, but I only have about 5 minutes for this. What should I actually listen for?',
     aiProposal:
-      'Listen for two things: whether a student names a specific piece of evidence (not just "the data"), and whether they can say what they changed and why. That’s enough to flag who needs support before the written explanation.',
+      'Listen for two things: whether a student can say which part of their model is matter and which is energy, and whether they can explain how the fire keeps burning underground through winter. That’s enough to flag who needs support before they generate their questions.',
   },
   Assessment: {
-    teacherFollowUp: 'Make this assessment more formative.',
+    teacherFollowUp: 'Make sure this ends with real, usable questions instead of vague ones.',
     aiProposal:
-      'Turn the written explanation into a two-part check: a quick draft claim students exchange with a partner for feedback partway through Elaborate — formative and ungraded — followed by the final explanation based on their revised model. The explanation you grade is really their second attempt.',
+      'Have each group narrow to their single best question and post it to a class Driving Question Board — framing it as "what we still need to figure out" keeps it open rather than asking students to restate what they already know.',
   },
 }
 
@@ -955,6 +1177,89 @@ function LessonRichText({ segments }: { segments: readonly LessonSegment[] }) {
       })}
     </>
   )
+}
+
+// Stands in for a real AI call when the teacher types a follow-up into the
+// revision chat (e.g. "Can you make this more focused on matter and energy
+// flow?"). The default behavior is to translate the teacher's stated intent
+// straight into a concrete revision — a statement, not another question —
+// so the interaction reads as a lesson-revision assistant rather than a
+// tutoring back-and-forth. A clarifying question is the exception, reserved
+// for input too thin to act on (see isTooVagueToActOn below), not the norm.
+// The returned proposal always replaces whatever Preview/Apply Change would
+// act on next, so a follow-up never silently changes the lesson itself —
+// the teacher must still explicitly Preview and/or Apply the new version.
+function isTooVagueToActOn(trimmedQuestion: string): boolean {
+  const lower = trimmedQuestion.toLowerCase().replace(/[.!?]+$/, '')
+  const wordCount = trimmedQuestion.split(/\s+/).filter(Boolean).length
+  const fillerPhrases = ['ok', 'okay', 'sure', 'yes', 'no', 'maybe', 'idk', 'hmm', 'help', 'i dont know', "i don't know"]
+  return wordCount <= 2 && fillerPhrases.includes(lower)
+}
+
+function mockRevisionFollowUpReply(
+  label: string,
+  question: string,
+  currentProposal: string,
+): { reply: string; newProposal: string } {
+  const trimmed = question.trim()
+  const lower = trimmed.toLowerCase()
+  const base = currentProposal || `a revision to ${label}`
+
+  // Genuinely too ambiguous to turn into a revision — ask one clarifying
+  // question instead of fabricating a change from nothing. This is the
+  // exception, not the default: everything below this responds with a
+  // concrete proposal.
+  if (isTooVagueToActOn(trimmed)) {
+    return {
+      reply: `Can you say a bit more about what you'd like to change about ${label} — the wording, the activity itself, or how students work through it?`,
+      newProposal: currentProposal,
+    }
+  }
+
+  if (lower.includes('matter') && lower.includes('energy')) {
+    return {
+      reply:
+        'Good catch — here’s a version that’s more explicit about matter and energy. I added a line asking students to label which part of their revision is about matter (peat) moving and which is about energy (heat) being transferred, so that distinction can’t get lost in the wording alone. Preview it below, or keep refining.',
+      newProposal: `${base} Label each addition as either matter (what moves) or energy (what transfers), so the distinction is explicit in the model itself, not just implied by the wording.`,
+    }
+  }
+
+  if (lower.includes('student') && (lower.includes('led') || lower.includes('choice') || lower.includes('ownership'))) {
+    return {
+      reply:
+        'Updated to put more of the decision in students’ hands: instead of you naming the focus upfront, groups decide for themselves what to investigate first, with your original framing available only if a group gets stuck.',
+      newProposal: `${base} Let students decide as a group what to investigate first, rather than the teacher naming it — offer your original framing only if a group needs a nudge.`,
+    }
+  }
+
+  if (lower.includes('open') && lower.includes('end')) {
+    return {
+      reply:
+        'Here’s a more open-ended version — instead of specifying exactly what to add, it asks students to decide for themselves what the new evidence changes about their thinking, which leaves more room for their own reasoning to show through.',
+      newProposal: `${base} Rather than specifying exactly what to add, ask students to decide for themselves what the new evidence changes about their thinking, and to explain why.`,
+    }
+  }
+
+  if (lower.includes('short') || lower.includes('concise') || lower.includes('brief')) {
+    const firstSentence = base.split(/(?<=[.?!])\s+/)[0]
+    return {
+      reply: 'Here’s a shorter version that keeps just the core instructional move.',
+      newProposal: firstSentence,
+    }
+  }
+
+  if (lower.includes('evidence')) {
+    return {
+      reply:
+        'I tied the revision more directly to evidence — students now have to point to something specific from the zombie fire images or readings, not just describe their model in general terms.',
+      newProposal: `${base} Ask students to point to one specific piece of evidence from the zombie fire images or readings that led to this change.`,
+    }
+  }
+
+  return {
+    reply: `Here’s an updated version of the “${label}” revision that reflects that. Preview it below, or keep refining.`,
+    newProposal: `${base} This revision also reflects: “${trimmed}.”`,
+  }
 }
 
 function buildSectionConversation(text: string, sectionKey: string | null, viaSuggestion: boolean): ChatMessage[] {
@@ -996,7 +1301,7 @@ function useSelectionPopup(containerRef: RefObject<HTMLElement | null>) {
       const anchorElement =
         anchorNode.nodeType === Node.ELEMENT_NODE ? (anchorNode as Element) : anchorNode.parentElement
 
-      if (!container.contains(anchorNode) || anchorElement?.closest('.suggestion-popover, .inline-ai-editor')) {
+      if (!container.contains(anchorNode) || anchorElement?.closest('.suggestion-popover')) {
         return
       }
 
@@ -1042,51 +1347,179 @@ function SelectionAskAIPopup({
   )
 }
 
-type EditStage = 'chatting' | 'previewing' | 'applied'
+type EditStage = 'chatting' | 'applied'
 
-type SectionEditState = { stage: EditStage; messages: ChatMessage[] }
-
-function useInlineEditor() {
-  const [openKey, setOpenKey] = useState<string | null>(null)
-  const [statesByKey, setStatesByKey] = useState<Record<string, SectionEditState>>({})
-  // revisedLesson: the accepted-change delta for each section, keyed by section label.
-  // This is the "revisedLesson" data structure — it starts empty (Revised == Original)
-  // and only grows when the teacher clicks "Apply Change". originalLesson (lessonSteps)
-  // and suggestedLesson (lessonSuggestions) are separate, static, and never mutated.
-  const [revisedLesson, setRevisedLesson] = useState<Record<string, string>>({})
-
-  const ask = (key: string, messages: ChatMessage[]) => {
-    setStatesByKey((prev) => ({ ...prev, [key]: { stage: 'chatting', messages } }))
-    setOpenKey(key)
-  }
-
-  const close = (key: string) => {
-    setOpenKey((current) => (current === key ? null : current))
-  }
-
-  const reopen = (key: string) => {
-    setOpenKey(key)
-  }
-
-  const preview = (key: string) => {
-    setStatesByKey((prev) => (prev[key] ? { ...prev, [key]: { ...prev[key], stage: 'previewing' } } : prev))
-  }
-
-  const apply = (key: string, addition: string) => {
-    // This is the one place revisedLesson is ever written — only in response to
-    // an explicit "Apply Change" click. originalLesson (lessonSteps) is untouched.
-    setRevisedLesson((prev) => ({ ...prev, [key]: addition }))
-    setStatesByKey((prev) => (prev[key] ? { ...prev, [key]: { ...prev[key], stage: 'applied' } } : prev))
-  }
-
-  const keepOriginal = (key: string) => {
-    setStatesByKey((prev) => (prev[key] ? { ...prev, [key]: { ...prev[key], stage: 'chatting' } } : prev))
-  }
-
-  return { openKey, statesByKey, revisedLesson, ask, close, reopen, preview, apply, keepOriginal }
+// One section's revision conversation: its chat history, its current stage,
+// and the concrete proposal text that Apply Change acts on. `proposalSegments`
+// carries the rich (bold/added) formatting for the canned first proposal
+// (see lessonRevisionSegments) so the proposed-change card can highlight
+// exactly what's new; once the teacher asks a follow-up, the new proposal is
+// a plain string and this is cleared.
+type SectionRevisionState = {
+  stage: EditStage
+  messages: ChatMessage[]
+  proposal: string
+  proposalSegments?: readonly LessonSegment[]
 }
 
-type InlineEditor = ReturnType<typeof useInlineEditor>
+// Drives the whole "Ask AI about this / Apply Change" workflow for every
+// lesson section, in one place, regardless of whether a section's
+// suggestion came from a pre-flagged AI Suggestion or a manual text-
+// selection. There is exactly one lesson (no separate Original / AI
+// Suggestions / AI Revised versions) — `revisedLesson` is the only place a
+// section's permanent text changes, and only in response to an explicit
+// Apply Change. As soon as the AI has a concrete proposal it's shown in
+// full in the proposed-change card — there's no separate "preview" step to
+// trigger first; Apply Change is available immediately.
+function useRevisionWorkflow() {
+  const [activeLabel, setActiveLabel] = useState<string | null>(null)
+  const [statesByLabel, setStatesByLabel] = useState<Record<string, SectionRevisionState>>({})
+  const [revisedLesson, setRevisedLesson] = useState<Record<string, string>>({})
+  // Rich (bold/added) segments for an APPLIED section on the working lesson
+  // (Generated/Suggestions), kept separately from revisedLesson's flat text
+  // so only the part AI actually contributed gets the yellow highlight —
+  // never the section's original wording. Present only when we can be
+  // confident which part is new (see apply() below); otherwise the plain
+  // flat text falls back to a whole-section highlight.
+  const [revisedLessonSegments, setRevisedLessonSegments] = useState<Record<string, readonly LessonSegment[] | undefined>>({})
+  const [isThinking, setIsThinking] = useState(false)
+  const thinkingTimeoutRef = useRef<number | null>(null)
+  // Briefly marks whichever section was just applied, so the lesson plan
+  // can flash a short success highlight there before it fades — see
+  // .section-just-applied.
+  const [justAppliedLabel, setJustAppliedLabel] = useState<string | null>(null)
+  const justAppliedTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (thinkingTimeoutRef.current !== null) window.clearTimeout(thinkingTimeoutRef.current)
+      if (justAppliedTimeoutRef.current !== null) window.clearTimeout(justAppliedTimeoutRef.current)
+    }
+  }, [])
+
+  // Opens (or restarts) a section's conversation and switches the left
+  // workspace to it — via a flagged AI suggestion ("Ask AI about this") or a
+  // freeform text selection. `proposal` seeds the proposed-change card;
+  // freeform selections have none, so they get a conversation with no
+  // apply step until one exists.
+  const ask = (label: string, messages: ChatMessage[], proposal?: string, proposalSegments?: readonly LessonSegment[]) => {
+    setStatesByLabel((prev) => ({
+      ...prev,
+      [label]: { stage: 'chatting', messages, proposal: proposal ?? '', proposalSegments },
+    }))
+    setActiveLabel(label)
+  }
+
+  const closeChat = () => setActiveLabel(null)
+
+  const reopen = (label: string) => setActiveLabel(label)
+
+  const apply = (label: string) => {
+    // Reads the current section's state from the hook's own closure rather
+    // than a setState updater's `prev` — deliberately. Nesting one setState
+    // call inside another updater looks convenient, but under React 18
+    // StrictMode that outer updater gets invoked twice, so the nested call
+    // fires twice too; for a non-idempotent computation like "extend these
+    // segments by a suffix" that double-fire corrupts the result (the
+    // second pass ends up diffing the already-extended array against
+    // itself). Reading `state` here and issuing every setState call
+    // independently — each a pure function of its own prior value — avoids
+    // that entirely.
+    const state = statesByLabel[label]
+    if (!state) return
+
+    setRevisedLesson((revised) => ({ ...revised, [label]: state.proposal }))
+
+    setRevisedLessonSegments((prevSegments) => {
+      if (state.proposalSegments) {
+        // Applying the canned first proposal — its added/plain segment
+        // boundaries are already exact (see lessonRevisionSegments), so
+        // use them directly rather than trying to re-derive them.
+        return { ...prevSegments, [label]: state.proposalSegments }
+      }
+      // A follow-up round: mockRevisionFollowUpReply always builds its new
+      // proposal as `${previous proposal text} <new text>`, so the text
+      // that was already applied (whatever its own added/plain makeup was)
+      // is still a literal prefix of this one — extend those existing
+      // segments with just the new suffix, rather than losing earlier
+      // rounds' highlighting or re-highlighting the whole thing.
+      const previousSegments = prevSegments[label]
+      const previousText = previousSegments ? segmentsToText(previousSegments) : undefined
+      if (previousText !== undefined && state.proposal.startsWith(previousText) && state.proposal.length > previousText.length) {
+        return {
+          ...prevSegments,
+          [label]: [...previousSegments!, { text: state.proposal.slice(previousText.length), added: true }],
+        }
+      }
+      // No usable prior segments to extend (first-ever apply for this
+      // section came from a follow-up, not the canned proposal; or the new
+      // text isn't a simple extension of the old) — we genuinely can't tell
+      // which part is new, so fall back to highlighting the whole thing.
+      return { ...prevSegments, [label]: undefined }
+    })
+
+    setStatesByLabel((prev) => (prev[label] ? { ...prev, [label]: { ...prev[label], stage: 'applied' } } : prev))
+
+    setJustAppliedLabel(label)
+    if (justAppliedTimeoutRef.current !== null) window.clearTimeout(justAppliedTimeoutRef.current)
+    justAppliedTimeoutRef.current = window.setTimeout(() => setJustAppliedLabel(null), 1200)
+  }
+
+  // A follow-up typed into the left chat: push the teacher's message, wait
+  // briefly (mirrors the "AI is thinking…" pattern used elsewhere in the
+  // app), then push a reply. When the reply carries an actual new proposal,
+  // stage resets to 'chatting' even if the section was already applied, so
+  // the teacher must explicitly Apply the new proposal too — a follow-up
+  // never silently overwrites an already-applied section. When the
+  // teacher's message was too vague to act on, the mock reply's proposal
+  // comes back unchanged (see isTooVagueToActOn) and this leaves
+  // stage/proposalSegments untouched rather than discarding a perfectly
+  // good pending or already-applied proposal just because the teacher asked
+  // a clarifying follow-up.
+  const sendFollowUp = (label: string, question: string) => {
+    setStatesByLabel((prev) => {
+      const state = prev[label]
+      if (!state) return prev
+      return { ...prev, [label]: { ...state, messages: [...state.messages, { role: 'teacher', text: question }] } }
+    })
+    setIsThinking(true)
+    if (thinkingTimeoutRef.current !== null) window.clearTimeout(thinkingTimeoutRef.current)
+    thinkingTimeoutRef.current = window.setTimeout(() => {
+      setStatesByLabel((prev) => {
+        const state = prev[label]
+        if (!state) return prev
+        const { reply, newProposal } = mockRevisionFollowUpReply(label, question, state.proposal)
+        const proposalChanged = newProposal !== state.proposal
+        return {
+          ...prev,
+          [label]: {
+            stage: proposalChanged ? 'chatting' : state.stage,
+            messages: [...state.messages, { role: 'ai', text: reply }],
+            proposal: newProposal,
+            proposalSegments: proposalChanged ? undefined : state.proposalSegments,
+          },
+        }
+      })
+      setIsThinking(false)
+    }, 700)
+  }
+
+  return {
+    activeLabel,
+    statesByLabel,
+    revisedLesson,
+    revisedLessonSegments,
+    isThinking,
+    justAppliedLabel,
+    ask,
+    closeChat,
+    reopen,
+    apply,
+    sendFollowUp,
+  }
+}
+
+type RevisionWorkflow = ReturnType<typeof useRevisionWorkflow>
 
 // Shared rendering for every chatbot/AI conversation thread in the app, so
 // the AI-left / Teacher-right alignment and "AI"/"You" speaker labels stay
@@ -1105,69 +1538,80 @@ function ChatThread({ messages, className }: { messages: readonly ChatMessage[];
   )
 }
 
-function InlineAIConversation({
+// Renders in the LEFT workspace (Form / AI Chat panel), not inline in the
+// lesson content — the right side stays the lesson plan itself. One panel
+// covers the whole "Ask AI about this → Apply Change" workflow for
+// whichever section is currently active.
+function RevisionChatPanel({
+  label,
   state,
-  canPreview,
-  previewAddition,
-  onPreview,
+  isThinking,
+  draft,
+  onDraftChange,
+  onSend,
   onApply,
-  onKeepOriginal,
   onClose,
 }: {
-  state: SectionEditState
-  canPreview: boolean
-  previewAddition?: readonly LessonSegment[]
-  onPreview: () => void
+  label: string
+  state: SectionRevisionState
+  isThinking: boolean
+  draft: string
+  onDraftChange: (value: string) => void
+  onSend: () => void
   onApply: () => void
-  onKeepOriginal: () => void
   onClose: () => void
 }) {
+  const hasProposal = Boolean(state.proposal)
+
   return (
-    <div className="inline-ai-editor">
-      <div className="inline-ai-header">
-        <p className="card-label">AI — Ask about this section</p>
+    <div className="revision-chat-panel">
+      <div className="revision-chat-header">
+        <div>
+          <p className="card-label">Discussing this section</p>
+          <h4>{label}</h4>
+        </div>
         <button type="button" className="drawer-close" aria-label="Close conversation" onClick={onClose}>
           ×
         </button>
       </div>
 
-      <ChatThread messages={state.messages} className="inline-ai-thread" />
+      <ChatThread messages={state.messages} className="revision-chat-thread" />
+      {isThinking && <p className="empty-state-support">AI is thinking…</p>}
 
-      {state.stage === 'chatting' && canPreview && (
-        <button type="button" className="primary-button inline-preview-button" onClick={onPreview}>
-          Preview Change
-        </button>
-      )}
-
-      {state.stage === 'previewing' && previewAddition && previewAddition.length > 0 && (
+      {/* The card itself IS the preview — the full proposed content is
+          shown here the moment the AI has one, with no separate "Preview
+          Change" step. The teacher can keep chatting to refine it (a
+          follow-up replaces this card's content) or click Apply Change
+          whenever they're satisfied. */}
+      {state.stage === 'chatting' && hasProposal && (
         <div className="inline-ai-preview">
-          <p className="card-label">Proposed change</p>
-          <p>
-            <span className="ai-highlight">
-              <LessonRichText segments={previewAddition} />
-            </span>
-          </p>
+          <p className="card-label">Proposed change — not yet applied</p>
+          <p>{state.proposalSegments ? <LessonRichText segments={state.proposalSegments} /> : state.proposal}</p>
           <div className="revision-actions">
-            <button type="button" className="accept-button" onClick={onApply}>
+            <button type="button" className="accept-button" onClick={onApply} disabled={isThinking}>
               Apply Change
-            </button>
-            <button type="button" className="reject-button" onClick={onKeepOriginal}>
-              Keep Original
             </button>
           </div>
         </div>
       )}
 
-      {state.stage === 'applied' && <p className="inline-ai-applied-note">✓ Applied to the lesson plan.</p>}
+      {state.stage === 'applied' && <p className="inline-ai-applied-note">✓ Applied to Lesson</p>}
 
-      {state.stage !== 'previewing' && (
-        <div className="composer-box">
-          <input type="text" placeholder="Ask about this section..." />
-          <button type="button" className="primary-button">
-            Send
-          </button>
-        </div>
-      )}
+      <div className="composer-box">
+        <input
+          type="text"
+          placeholder="Ask about this section..."
+          value={draft}
+          onChange={(event) => onDraftChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') onSend()
+          }}
+          disabled={isThinking}
+        />
+        <button type="button" className="primary-button" onClick={onSend} disabled={isThinking || !draft.trim()}>
+          Send
+        </button>
+      </div>
     </div>
   )
 }
@@ -1180,43 +1624,64 @@ function App() {
   // conversation history, and manual edits survive navigating away and back
   // — the canvas now mounts in two different places (embedded on the Lesson
   // Planning page after Generate Lesson, and on the standalone Lesson
-  // Workspace page), and neither should reset the other's work.
-  const [lessonVersion, setLessonVersion] = useState<LessonVersion>('original')
+  // Workspace page), and neither should reset the other's work. `planningTab`
+  // is lifted too (rather than living inside LessonPlanningPanel) so that
+  // clicking "Ask AI about this" on the right can reliably switch whichever
+  // panel instance is currently mounted over to its AI Chat tab.
+  const [planningTab, setPlanningTab] = useState<PlanningTab>('form')
+  const [lessonTab, setLessonTab] = useState<LessonTab>('generated')
   const [openSuggestion, setOpenSuggestion] = useState<string | null>(null)
-  const [openComparison, setOpenComparison] = useState<string | null>(null)
-  const revisionEditor = useInlineEditor()
+  const revisionEditor = useRevisionWorkflow()
   const [isEditingLesson, setIsEditingLesson] = useState(false)
-  const [manualEditsByVersion, setManualEditsByVersion] = useState<Record<LessonVersion, Record<string, string>>>({
-    original: {},
-    suggestions: {},
-    revised: {},
-  })
+  const [manualEdits, setManualEdits] = useState<Record<string, string>>({})
   const [draftBySection, setDraftBySection] = useState<Record<string, string>>({})
   const [editBaseline, setEditBaseline] = useState<Record<string, string>>({})
 
   // Generate Lesson no longer navigates away from the Lesson Planning page —
   // it reveals the generated lesson in the workspace panel on the right,
   // in place, so the form and any AI Chat conversation on the left stay
-  // exactly as the teacher left them.
+  // exactly as the teacher left them. This state is lifted to App (rather
+  // than living on either page) so it stays in sync between the embedded
+  // canvas on Lesson Planning and the standalone Lesson Workspace page —
+  // landing on Lesson Workspace directly must never show generated content
+  // that Generate Lesson hasn't actually produced yet.
   const [lessonGenerated, setLessonGenerated] = useState(false)
+  const [isGeneratingLesson, setIsGeneratingLesson] = useState(false)
+  const generateLessonTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (generateLessonTimeoutRef.current !== null) window.clearTimeout(generateLessonTimeoutRef.current)
+    }
+  }, [])
+
+  const handleGenerateLessonPlan = () => {
+    if (isGeneratingLesson) return
+    setIsGeneratingLesson(true)
+    generateLessonTimeoutRef.current = window.setTimeout(() => {
+      setLessonGenerated(true)
+      setIsGeneratingLesson(false)
+    }, 900)
+  }
 
   const canvasProps: LessonWorkspaceCanvasProps = {
     editor: revisionEditor,
-    lessonVersion,
-    setLessonVersion,
+    setPlanningTab,
+    lessonTab,
+    setLessonTab,
     openSuggestion,
     setOpenSuggestion,
-    openComparison,
-    setOpenComparison,
     isEditing: isEditingLesson,
     setIsEditing: setIsEditingLesson,
-    manualEditsByVersion,
-    setManualEditsByVersion,
+    manualEdits,
+    setManualEdits,
     draftBySection,
     setDraftBySection,
     editBaseline,
     setEditBaseline,
   }
+
+  const planningPanelProps = { planningTab, setPlanningTab, revisionEditor }
 
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
@@ -1274,12 +1739,23 @@ function App() {
 
         {activePage === 'lesson-generator' && (
           <LessonPlanningPage
-            onGenerateLessonPlan={() => setLessonGenerated(true)}
+            onGenerateLessonPlan={handleGenerateLessonPlan}
             lessonGenerated={lessonGenerated}
+            isGeneratingLesson={isGeneratingLesson}
             canvasProps={canvasProps}
+            planningPanelProps={planningPanelProps}
           />
         )}
-        {activePage === 'lesson-workspace' && <LessonWorkspacePage canvasProps={canvasProps} />}
+        {activePage === 'lesson-workspace' && (
+          <LessonWorkspacePage
+            onGenerateLessonPlan={handleGenerateLessonPlan}
+            lessonGenerated={lessonGenerated}
+            isGeneratingLesson={isGeneratingLesson}
+            canvasProps={canvasProps}
+            planningPanelProps={planningPanelProps}
+          />
+        )}
+        {activePage === 'student-feedback' && <StudentFeedbackPage />}
         {activePage === 'class-feedback-dashboard' && <FeedbackDashboardPage />}
       </main>
 
@@ -1332,20 +1808,37 @@ function App() {
 type ChatMessage = { role: 'ai' | 'teacher'; text: string }
 
 function LessonPlanningPanel({
-  defaultTab,
+  planningTab,
+  setPlanningTab,
+  revisionEditor,
   chatTitle,
   chatBadge,
   chatMessages,
   onGenerate,
 }: {
-  defaultTab: PlanningTab
+  planningTab: PlanningTab
+  setPlanningTab: (tab: PlanningTab) => void
+  revisionEditor: RevisionWorkflow
   chatTitle: string
   chatBadge: string
   chatMessages: readonly ChatMessage[]
   onGenerate?: () => void
 }) {
-  const [planningTab, setPlanningTab] = useState<PlanningTab>(defaultTab)
-  const [selectedPractices, setSelectedPractices] = useState<string[]>(['modeling'])
+  // Draft text for whichever lesson-section revision conversation is
+  // currently active (see revisionEditor.activeLabel) — cleared whenever the
+  // teacher switches to a different section's conversation.
+  const [revisionDraft, setRevisionDraft] = useState('')
+  useEffect(() => {
+    setRevisionDraft('')
+  }, [revisionEditor.activeLabel])
+
+  // The Lesson Preferences form starts completely blank — a new teacher's
+  // first view of this page must look like an empty form, not one already
+  // filled in with the prototype's example (Zombie Fires) lesson. That
+  // example only ever appears as the GENERATED output once the teacher
+  // clicks Generate Lesson (see lessonSteps and friends below), never as
+  // pre-filled input here.
+  const [selectedPractices, setSelectedPractices] = useState<string[]>([])
   // Every field below is lifted above the Form/AI Chat toggle so a
   // teacher's entries survive switching tabs and back, and survive
   // clicking Generate Lesson (which no longer unmounts this panel at all).
@@ -1446,9 +1939,8 @@ function LessonPlanningPanel({
                 <option value="" disabled>
                   Select grade level
                 </option>
-                <option value="6-8">6-8</option>
-                <option value="9-10">9-10</option>
-                <option value="11-12">11-12</option>
+                <option value="6-8">Grades 6–8</option>
+                <option value="9-12">Grades 9–12</option>
               </select>
             </label>
 
@@ -1612,53 +2104,122 @@ function LessonPlanningPanel({
         </div>
       ) : (
         <div className="planning-chat">
-          <div className="panel-header">
-            <h3>{chatTitle}</h3>
-            <span className="badge">{chatBadge}</span>
-          </div>
+          {revisionEditor.activeLabel && revisionEditor.statesByLabel[revisionEditor.activeLabel] ? (
+            <RevisionChatPanel
+              label={revisionEditor.activeLabel}
+              state={revisionEditor.statesByLabel[revisionEditor.activeLabel]}
+              isThinking={revisionEditor.isThinking}
+              draft={revisionDraft}
+              onDraftChange={setRevisionDraft}
+              onSend={() => {
+                const label = revisionEditor.activeLabel
+                if (!label || !revisionDraft.trim()) return
+                revisionEditor.sendFollowUp(label, revisionDraft.trim())
+                setRevisionDraft('')
+              }}
+              onApply={() => revisionEditor.activeLabel && revisionEditor.apply(revisionEditor.activeLabel)}
+              onClose={() => revisionEditor.closeChat()}
+            />
+          ) : (
+            <>
+              <div className="panel-header">
+                <h3>{chatTitle}</h3>
+                <span className="badge">{chatBadge}</span>
+              </div>
 
-          <ChatThread messages={chatMessages} className="planning-thread" />
+              <ChatThread messages={chatMessages} className="planning-thread" />
 
-          <div className="lesson-context-card">
-            <p className="card-label">Lesson context</p>
-            <div className="context-tags">
-              {lessonContextTags.map((tag) => (
-                <span key={tag} className="tag">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
+              <div className="lesson-context-card">
+                <p className="card-label">Lesson context</p>
+                <div className="context-tags">
+                  {lessonContextTags.map((tag) => (
+                    <span key={tag} className="tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-          <div className="composer-box">
-            <input type="text" placeholder="Continue the planning conversation..." />
-            <button type="button" className="primary-button">
-              Send
-            </button>
-          </div>
+              <div className="composer-box">
+                <input type="text" placeholder="Continue the planning conversation..." />
+                <button type="button" className="primary-button">
+                  Send
+                </button>
+              </div>
 
-          <button type="button" className="primary-button generate-button" onClick={onGenerate}>
-            Generate Lesson Plan
-          </button>
+              <button type="button" className="primary-button generate-button" onClick={onGenerate}>
+                Generate Lesson Plan
+              </button>
+            </>
+          )}
         </div>
       )}
     </aside>
   )
 }
 
+// Shown in place of the generated lesson on both the embedded (Lesson
+// Planning) and standalone (Lesson Workspace) canvas slots whenever
+// Generate Lesson hasn't actually been clicked yet — landing on either page
+// must never show lesson content the teacher didn't ask for. `isGenerating`
+// swaps in a brief, lightweight "in progress" message (mirroring the same
+// plain-text convention "Regenerate Questions" uses on the dashboard)
+// between the click and the content actually appearing.
+function LessonWorkspacePlaceholder({ isGenerating }: { isGenerating: boolean }) {
+  return (
+    <section className="workspace-placeholder lesson-workspace-panel">
+      <div className="canvas-header">
+        <div>
+          <p className="card-label">Lesson workspace</p>
+          <h3>Lesson plan</h3>
+        </div>
+      </div>
+
+      {isGenerating ? (
+        <div className="empty-state">
+          <p className="card-label">Generating lesson</p>
+          <h3>Building your aligned lesson plan…</h3>
+          <p className="empty-state-support">This will just take a moment.</p>
+        </div>
+      ) : (
+        <div className="empty-state">
+          <p className="card-label">Ready for lesson output</p>
+          <h3>Your generated lesson will appear here</h3>
+          <p className="empty-state-support">
+            Complete your lesson preferences and click Generate Lesson to create an aligned lesson plan.
+          </p>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// Lifted to App so "Ask AI about this" can switch whichever LessonPlanningPanel
+// instance is currently mounted (Lesson Planning vs. Lesson Workspace) over
+// to its AI Chat tab, scoped to the section the teacher just clicked.
+type PlanningPanelProps = {
+  planningTab: PlanningTab
+  setPlanningTab: (tab: PlanningTab) => void
+  revisionEditor: RevisionWorkflow
+}
+
 function LessonPlanningPage({
   onGenerateLessonPlan,
   lessonGenerated,
+  isGeneratingLesson,
   canvasProps,
+  planningPanelProps,
 }: {
   onGenerateLessonPlan: () => void
   lessonGenerated: boolean
+  isGeneratingLesson: boolean
   canvasProps: LessonWorkspaceCanvasProps
+  planningPanelProps: PlanningPanelProps
 }) {
   return (
     <div className="planning-layout">
       <LessonPlanningPanel
-        defaultTab="form"
+        {...planningPanelProps}
         chatTitle="AI Planning Assistant"
         chatBadge="Collaborative"
         chatMessages={planningConversation}
@@ -1668,40 +2229,23 @@ function LessonPlanningPage({
       {lessonGenerated ? (
         <LessonWorkspaceCanvas {...canvasProps} />
       ) : (
-        <section className="workspace-placeholder lesson-workspace-panel">
-          <div className="canvas-header">
-            <div>
-              <p className="card-label">Lesson workspace</p>
-              <h3>Lesson plan</h3>
-            </div>
-          </div>
-
-          <div className="empty-state">
-            <p className="card-label">Ready for lesson output</p>
-            <h3>Your lesson plan will appear here</h3>
-            <p className="empty-state-support">
-              Complete the form, develop your activity with the AI assistant, or upload an existing
-              lesson to get started.
-            </p>
-          </div>
-        </section>
+        <LessonWorkspacePlaceholder isGenerating={isGeneratingLesson} />
       )}
     </div>
   )
 }
 
 type LessonWorkspaceCanvasProps = {
-  editor: InlineEditor
-  lessonVersion: LessonVersion
-  setLessonVersion: (version: LessonVersion) => void
+  editor: RevisionWorkflow
+  setPlanningTab: (tab: PlanningTab) => void
+  lessonTab: LessonTab
+  setLessonTab: (tab: LessonTab) => void
   openSuggestion: string | null
   setOpenSuggestion: (key: string | null) => void
-  openComparison: string | null
-  setOpenComparison: (key: string | null) => void
   isEditing: boolean
   setIsEditing: Dispatch<SetStateAction<boolean>>
-  manualEditsByVersion: Record<LessonVersion, Record<string, string>>
-  setManualEditsByVersion: Dispatch<SetStateAction<Record<LessonVersion, Record<string, string>>>>
+  manualEdits: Record<string, string>
+  setManualEdits: Dispatch<SetStateAction<Record<string, string>>>
   draftBySection: Record<string, string>
   setDraftBySection: Dispatch<SetStateAction<Record<string, string>>>
   editBaseline: Record<string, string>
@@ -1717,16 +2261,15 @@ type LessonWorkspaceCanvasProps = {
 // loses a revision, conversation, or manual edit.
 function LessonWorkspaceCanvas({
   editor,
-  lessonVersion,
-  setLessonVersion,
+  setPlanningTab,
+  lessonTab,
+  setLessonTab,
   openSuggestion,
   setOpenSuggestion,
-  openComparison,
-  setOpenComparison,
   isEditing,
   setIsEditing,
-  manualEditsByVersion,
-  setManualEditsByVersion,
+  manualEdits,
+  setManualEdits,
   draftBySection,
   setDraftBySection,
   editBaseline,
@@ -1737,20 +2280,11 @@ function LessonWorkspaceCanvas({
   const contentRef = useRef<HTMLDivElement>(null)
   const { popup, clear: clearPopup } = useSelectionPopup(contentRef)
 
-  // Original, AI Suggestions, and AI Revised each keep their own independent
-  // set of accepted changes — a change applied while viewing one state must
-  // never appear in another. The editor's maps are keyed by plain section
-  // label, so every read/write here is namespaced with the active version
-  // ("original:Assessment" vs. "suggestions:Assessment" vs. "revised:Assessment")
-  // to keep the three states fully decoupled while reusing the same hook.
-  const scopedKey = (label: string) => `${lessonVersion}:${label}`
-
   const getDisplayText = (label: string, segments: readonly LessonSegment[]) => {
-    const manualEdit = manualEditsByVersion[lessonVersion][label]
+    const manualEdit = manualEdits[label]
     if (manualEdit !== undefined) return manualEdit
-    const chatApplied = editor.revisedLesson[scopedKey(label)]
-    if (chatApplied !== undefined) return chatApplied
-    if (lessonVersion === 'revised' && lessonRevisions[label] !== undefined) return lessonRevisions[label]
+    const applied = editor.revisedLesson[label]
+    if (applied !== undefined) return applied
     return segmentsToText(segments)
   }
 
@@ -1762,86 +2296,90 @@ function LessonWorkspaceCanvas({
     setDraftBySection(drafts)
     setEditBaseline(drafts)
     setOpenSuggestion(null)
-    setOpenComparison(null)
     setIsEditing(true)
   }
 
   const saveEditing = () => {
-    setManualEditsByVersion((prev) => {
-      const nextForVersion = { ...prev[lessonVersion] }
+    setManualEdits((prev) => {
+      const next = { ...prev }
       for (const [label, text] of Object.entries(draftBySection)) {
         if (text !== editBaseline[label]) {
-          nextForVersion[label] = text
+          next[label] = text
         }
       }
-      return { ...prev, [lessonVersion]: nextForVersion }
+      return next
     })
     setIsEditing(false)
   }
 
-  const handleManualAskAI = (text: string, sectionKey: string | null) => {
-    if (!sectionKey) return
-    editor.ask(scopedKey(sectionKey), buildSectionConversation(text, sectionKey, false))
-    clearPopup()
-    window.getSelection()?.removeAllRanges()
+  // The single entry point for "Ask AI about this" — opens (or restarts) a
+  // section's conversation and switches the left workspace over to it,
+  // whether triggered from a flagged AI suggestion or a freeform text
+  // selection. `lessonRevisions`/`lessonRevisionSegments` seed the initial
+  // concrete proposal for sections that have one; freeform selections just
+  // get a conversation with no preview/apply step, same as before.
+  const startRevisionChat = (label: string, text: string, viaSuggestion: boolean) => {
+    editor.ask(label, buildSectionConversation(text, label, viaSuggestion), lessonRevisions[label], lessonRevisionSegments[label])
+    setPlanningTab('ai-chat')
   }
 
-  const renderInlineEditor = (label: string) => {
-    const key = scopedKey(label)
-    const state = editor.statesByKey[key]
-    if (editor.openKey !== key || !state) return null
+  // Re-focuses an already-engaged section's conversation (chatting,
+  // previewing, or applied) without resetting it.
+  const focusRevisionChat = (label: string) => {
+    editor.reopen(label)
+    setPlanningTab('ai-chat')
+  }
 
-    return (
-      <InlineAIConversation
-        state={state}
-        canPreview={Boolean(stepWorkflow[label])}
-        previewAddition={lessonRevisionSegments[label]}
-        onPreview={() => editor.preview(key)}
-        onApply={() => {
-          editor.apply(key, lessonRevisions[label] ?? '')
-          // Collapse the conversation immediately so the teacher sees the
-          // whole lesson — with just this section highlighted — as one
-          // coherent document, rather than a chat panel interrupting it.
-          // The highlight itself is reopenable via "Discuss this change".
-          editor.close(key)
-        }}
-        onKeepOriginal={() => editor.keepOriginal(key)}
-        onClose={() => editor.close(key)}
-      />
-    )
+  const handleManualAskAI = (text: string, sectionKey: string | null) => {
+    if (!sectionKey) return
+    startRevisionChat(sectionKey, text, false)
+    clearPopup()
+    window.getSelection()?.removeAllRanges()
   }
 
   const renderLessonStep = (step: (typeof lessonSteps)[number]) => {
     // Most steps show their own label as the lead-in text ("Standards:",
     // "Engage:"); a few — the individually editable numbered learning
-    // objectives — replace that with a short displayPrefix ("1.", "2.",
-    // "3.") since their internal label is only a data key, not something
+    // objectives — replace that with a short displayPrefix ("1.A", "1.B",
+    // "1.C") since their internal label is only a data key, not something
     // meant to be read.
     const labelText = step.displayPrefix ?? `${step.label}:`
+    const key = step.label
 
     if (isEditing) {
       return (
-        <div data-section-key={step.label}>
+        <div data-section-key={key}>
           <p>
             <strong>{labelText}</strong> <DurationBadge duration={step.duration} />
           </p>
           <textarea
             rows={3}
-            value={draftBySection[step.label] ?? ''}
-            onChange={(event) => setDraftBySection((prev) => ({ ...prev, [step.label]: event.target.value }))}
+            value={draftBySection[key] ?? ''}
+            onChange={(event) => setDraftBySection((prev) => ({ ...prev, [key]: event.target.value }))}
           />
         </div>
       )
     }
 
+    // Generated, AI Suggestions, and Revised all render from this same
+    // point on — they're three views of the SAME current lesson (manual
+    // edits + whatever's been applied so far), including the yellow
+    // "AI revised" highlight/tag on an applied section, which shows up
+    // identically on all three. The only actual difference between them is
+    // that Suggestions alone surfaces pending, not-yet-applied AI
+    // suggestions as clickable highlights (see showSuggestionHighlight
+    // below); Generated and Revised never flag a pending suggestion, so an
+    // un-applied section just reads as plain original text there until the
+    // teacher actually applies something.
+
     // A manual edit (from Edit Lesson / Save Edits) always takes
     // priority for display — it's the teacher's own final wording,
     // shown as plain text with no yellow highlight, which is
     // reserved for AI suggestions and AI-applied changes.
-    const manualEdit = manualEditsByVersion[lessonVersion][step.label]
+    const manualEdit = manualEdits[key]
     if (manualEdit !== undefined) {
       return (
-        <div data-section-key={step.label}>
+        <div data-section-key={key}>
           <p>
             {labelText} <DurationBadge duration={step.duration} /> {manualEdit}
           </p>
@@ -1849,76 +2387,87 @@ function LessonWorkspaceCanvas({
       )
     }
 
-    // Each version keeps its own accepted change for this section.
-    // "AI Revised" additionally starts from a pre-baked baseline
-    // (lessonRevisions) representing AI's already-applied rewrite —
-    // that baseline is independent of anything the teacher does in
-    // Original or AI Suggestions, and a teacher's own accepted edit
-    // here takes precedence over it once one exists.
-    const chatApplied = editor.revisedLesson[scopedKey(step.label)]
-    const baseline = lessonVersion === 'revised' ? lessonRevisions[step.label] : undefined
-    const revisedText = chatApplied ?? baseline
-    const isRevised = Boolean(revisedText)
-    // The static "AI Revised" baseline carries segment-level bold info
-    // (so a newly-introduced practice term like "Model Revision" still
-    // renders bold inside the yellow highlight); a teacher-triggered
-    // chat-applied change is stored as plain text and renders as such.
-    const baselineSegments = lessonVersion === 'revised' ? lessonRevisionSegments[step.label] : undefined
-    // The static AI Revised baseline is a pre-existing teacher lesson with
-    // only targeted AI edits — LessonRichText highlights just the segments
-    // marked `added`, so most of the section reads as normal text. A
-    // teacher-triggered chat-applied change (any tab) is a one-off accepted
-    // suggestion, stored as plain text, and keeps the original full-highlight
-    // treatment as direct confirmation of exactly what was just approved.
-    const isBaselineOnly = chatApplied === undefined && baselineSegments !== undefined
-    const revisedNode =
-      chatApplied === undefined && baselineSegments ? <LessonRichText segments={baselineSegments} /> : revisedText
+    const revisionState = editor.statesByLabel[key]
 
-    const suggestion = lessonVersion === 'suggestions' && !isRevised ? lessonSuggestions[step.label] : undefined
-    const isSuggestionOpen = openSuggestion === step.label
+    // Revised is a predefined comparison view, not a log of what the
+    // teacher happened to click Apply Change on: for any section that
+    // carries an AI suggestion, it always shows AI's OWN baseline revision
+    // of it — the exact same recommendation described in AI Suggestions,
+    // already incorporated — regardless of the conversational chat state.
+    // Generated/Suggestions instead show the teacher-approved, conversational
+    // working lesson (editor.revisedLesson) — a deliberately separate track,
+    // since that represents what the TEACHER chose to accept, not what AI
+    // would do on its own.
+    const revisedBaselineSegments = lessonTab === 'revised' ? lessonRevisionSegments[key] : undefined
+    const isBaselineOnly = revisedBaselineSegments !== undefined
+    const appliedText = isBaselineOnly ? lessonRevisions[key] : editor.revisedLesson[key]
+    const isApplied = appliedText !== undefined
+    // On the working lesson (Generated/Suggestions), highlight only the
+    // part AI actually contributed, same as Revised does — never the
+    // section's original wording. Falls back to highlighting the whole
+    // applied text only when we genuinely can't tell which part is new
+    // (see apply() in useRevisionWorkflow).
+    const workingSegments = !isBaselineOnly ? editor.revisedLessonSegments[key] : undefined
+    const richSegments = revisedBaselineSegments ?? workingSegments
+    const isFocused = editor.activeLabel === key
+    const suggestion = !isApplied ? lessonSuggestions[key] : undefined
+    // Only the Suggestions tab renders a pending suggestion as a clickable
+    // highlight — on Revised, an un-applied section just reads as plain
+    // original text until the teacher actually applies something.
+    const showSuggestionHighlight = lessonTab === 'suggestions' && Boolean(suggestion)
+    const isSuggestionOpen = lessonTab === 'suggestions' && openSuggestion === key
+    const sectionClassName =
+      [isFocused && 'section-focused', editor.justAppliedLabel === key && 'section-just-applied']
+        .filter(Boolean)
+        .join(' ') || undefined
+
+    // Clicking a flagged phrase: if the section is still untouched, reveal
+    // the "AI Suggestion" popover (the "review the suggestion" step). Once
+    // the teacher has engaged with it at all — chatting or applied —
+    // clicking it just re-opens that ongoing conversation on the left
+    // instead of showing the popover again.
+    const handleTriggerClick = () => {
+      if (revisionState) {
+        focusRevisionChat(key)
+      } else {
+        setOpenSuggestion(isSuggestionOpen ? null : key)
+      }
+    }
+
+    const askAboutSuggestion = () => {
+      setOpenSuggestion(null)
+      const flaggedText = segmentsToText(step.segments.filter((segment) => segment.flagged))
+      startRevisionChat(key, flaggedText || segmentsToText(step.segments), true)
+    }
+
+    // Clicking an "AI revised" section: reopen the existing conversation if
+    // one exists, same as before. A section can now show as revised on the
+    // Revised tab's predefined baseline without the teacher ever having
+    // opened its chat, though — in that case there's no conversation to
+    // reopen yet, so start one instead (seeded the same way "Ask AI about
+    // this" would).
+    const openAppliedSectionChat = () => {
+      if (revisionState) {
+        focusRevisionChat(key)
+      } else {
+        const flaggedText = segmentsToText(step.segments.filter((segment) => segment.flagged))
+        startRevisionChat(key, flaggedText || segmentsToText(step.segments), true)
+      }
+    }
 
     // Materials and Equipment & Technology render as a bullet list — one
-    // list item per segment — instead of one flowing paragraph. This only
-    // applies to the pre-baked baseline/original/suggestion view; a
-    // teacher-triggered chat-applied change (`chatApplied`) is a flat,
+    // list item per segment — instead of one flowing paragraph, as long as
+    // the section hasn't been applied yet. An applied change is a flat,
     // one-off accepted string and falls through to the normal paragraph
-    // rendering below, exactly like every other section.
-    if (step.listStyle === 'bullet' && chatApplied === undefined) {
-      const itemSegments = isBaselineOnly && baselineSegments ? baselineSegments : step.segments
+    // rendering below, like every other applied section.
+    if (step.listStyle === 'bullet' && !isApplied) {
       return (
-        <div data-section-key={step.label}>
+        <div data-section-key={key} className={sectionClassName}>
           <p>{labelText}</p>
           <ul className="lesson-bullet-list">
-            {itemSegments.map((segment, segmentIndex) => {
+            {step.segments.map((segment, segmentIndex) => {
               const content = segment.bold ? <strong>{segment.text}</strong> : segment.text
-
-              if (isBaselineOnly && segment.added) {
-                return (
-                  <li key={segmentIndex}>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="ai-highlight lesson-highlight-trigger"
-                      aria-expanded={openComparison === step.label}
-                      onClick={() => {
-                        editor.close(scopedKey(step.label))
-                        setOpenComparison(openComparison === step.label ? null : step.label)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault()
-                          editor.close(scopedKey(step.label))
-                          setOpenComparison(openComparison === step.label ? null : step.label)
-                        }
-                      }}
-                    >
-                      {content}
-                    </span>
-                  </li>
-                )
-              }
-
-              if (suggestion && segment.flagged) {
+              if (showSuggestionHighlight && segment.flagged) {
                 return (
                   <li key={segmentIndex}>
                     <span
@@ -1926,11 +2475,11 @@ function LessonWorkspaceCanvas({
                       tabIndex={0}
                       className="ai-highlight lesson-highlight-trigger"
                       aria-expanded={isSuggestionOpen}
-                      onClick={() => setOpenSuggestion(isSuggestionOpen ? null : step.label)}
+                      onClick={handleTriggerClick}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault()
-                          setOpenSuggestion(isSuggestionOpen ? null : step.label)
+                          handleTriggerClick()
                         }
                       }}
                     >
@@ -1939,114 +2488,86 @@ function LessonWorkspaceCanvas({
                   </li>
                 )
               }
-
               return <li key={segmentIndex}>{content}</li>
             })}
           </ul>
-          {isBaselineOnly && <span className="ai-revised-tag">AI revised</span>}
 
           {isSuggestionOpen && suggestion && (
             <div className="suggestion-popover">
               <p className="card-label">AI Suggestion</p>
               <p>{suggestion}</p>
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => {
-                  setOpenSuggestion(null)
-                  const flaggedText = segmentsToText(step.segments.filter((segment) => segment.flagged))
-                  editor.ask(
-                    scopedKey(step.label),
-                    buildSectionConversation(flaggedText || segmentsToText(step.segments), step.label, true),
-                  )
-                }}
-              >
+              <button type="button" className="primary-button" onClick={askAboutSuggestion}>
                 Ask AI about this
               </button>
             </div>
           )}
+        </div>
+      )
+    }
 
-          {openComparison === step.label && revisedText && (
-            <div className="suggestion-popover revision-diff">
-              <p className="card-label">Original</p>
-              <ul className="lesson-bullet-list">
-                {step.segments.map((segment, segmentIndex) => (
-                  <li key={segmentIndex}>{segment.bold ? <strong>{segment.text}</strong> : segment.text}</li>
-                ))}
-              </ul>
-              <p className="revision-diff-arrow" aria-hidden="true">
-                ↓
-              </p>
-              <p className="card-label">{lessonVersionLabels[lessonVersion]}</p>
-              <ul className="lesson-bullet-list">
-                {(baselineSegments ?? step.segments).map((segment, segmentIndex) => (
-                  <li key={segmentIndex}>
-                    <span className={segment.added ? 'ai-highlight' : undefined}>
-                      {segment.bold ? <strong>{segment.text}</strong> : segment.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <p className="revision-diff-note">✓ Applied from an AI suggestion you accepted.</p>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  setOpenComparison(null)
-                  if (editor.statesByKey[scopedKey(step.label)]) {
-                    editor.reopen(scopedKey(step.label))
-                  } else {
-                    editor.ask(scopedKey(step.label), [
-                      {
-                        role: 'ai',
-                        text: 'This section was already revised. What would you like to explore or change about it?',
-                      },
-                    ])
-                  }
-                }}
-              >
-                Discuss this change
-              </button>
-            </div>
-          )}
-
-          {renderInlineEditor(step.label)}
+    // Revised's predefined baseline for a bullet section keeps its item
+    // structure (rather than flattening to one paragraph, like a teacher's
+    // own conversational apply does) — one <li> per segment, with only the
+    // segment(s) AI actually added highlighted, so most of the list still
+    // reads as the teacher's normal content.
+    if (step.listStyle === 'bullet' && isBaselineOnly && revisedBaselineSegments) {
+      return (
+        <div data-section-key={key} className={sectionClassName}>
+          <p>{labelText}</p>
+          <div
+            role="button"
+            tabIndex={0}
+            className="lesson-highlight-trigger"
+            onClick={openAppliedSectionChat}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                openAppliedSectionChat()
+              }
+            }}
+          >
+            <ul className="lesson-bullet-list">
+              {revisedBaselineSegments.map((segment, segmentIndex) => (
+                <li key={segmentIndex}>
+                  <span className={segment.added ? 'ai-highlight' : undefined}>
+                    {segment.bold ? <strong>{segment.text}</strong> : segment.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <span className="ai-revised-tag">AI revised</span>
         </div>
       )
     }
 
     return (
-      <div data-section-key={step.label}>
+      <div data-section-key={key} className={sectionClassName}>
         <p>
           {labelText} <DurationBadge duration={step.duration} />{' '}
-          {isRevised ? (
+          {isApplied ? (
             <>
               <span
                 role="button"
                 tabIndex={0}
-                className={isBaselineOnly ? 'lesson-highlight-trigger' : 'lesson-highlight-trigger ai-highlight'}
-                aria-expanded={openComparison === step.label}
-                onClick={() => {
-                  editor.close(scopedKey(step.label))
-                  setOpenComparison(openComparison === step.label ? null : step.label)
-                }}
+                className={richSegments ? 'lesson-highlight-trigger' : 'lesson-highlight-trigger ai-highlight'}
+                onClick={openAppliedSectionChat}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault()
-                    editor.close(scopedKey(step.label))
-                    setOpenComparison(openComparison === step.label ? null : step.label)
+                    openAppliedSectionChat()
                   }
                 }}
               >
-                {revisedNode}
+                {richSegments ? <LessonRichText segments={richSegments} /> : appliedText}
               </span>
               <span className="ai-revised-tag">AI revised</span>
             </>
-          ) : suggestion ? (
+          ) : showSuggestionHighlight ? (
             // Only the segment(s) marked `flagged` (the specific sentence or
             // phrase the suggestion is about) become the clickable/highlighted
             // trigger — the rest of the section renders as the teacher's
-            // normal text, so AI Suggestions never blankets a whole section.
+            // normal text, so an AI suggestion never blankets a whole section.
             <>
               {step.segments.map((segment, segmentIndex) => {
                 const content = segment.bold ? <strong>{segment.text}</strong> : segment.text
@@ -2060,11 +2581,11 @@ function LessonWorkspaceCanvas({
                     tabIndex={0}
                     className="lesson-highlight-trigger ai-highlight"
                     aria-expanded={isSuggestionOpen}
-                    onClick={() => setOpenSuggestion(isSuggestionOpen ? null : step.label)}
+                    onClick={handleTriggerClick}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()
-                        setOpenSuggestion(isSuggestionOpen ? null : step.label)
+                        handleTriggerClick()
                       }
                     }}
                   >
@@ -2082,58 +2603,11 @@ function LessonWorkspaceCanvas({
           <div className="suggestion-popover">
             <p className="card-label">AI Suggestion</p>
             <p>{suggestion}</p>
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => {
-                setOpenSuggestion(null)
-                const flaggedText = segmentsToText(step.segments.filter((segment) => segment.flagged))
-                editor.ask(
-                  scopedKey(step.label),
-                  buildSectionConversation(flaggedText || segmentsToText(step.segments), step.label, true),
-                )
-              }}
-            >
+            <button type="button" className="primary-button" onClick={askAboutSuggestion}>
               Ask AI about this
             </button>
           </div>
         )}
-
-        {openComparison === step.label && revisedText && (
-          <div className="suggestion-popover revision-diff">
-            <p className="card-label">Original</p>
-            <p>
-              <LessonRichText segments={step.segments} />
-            </p>
-            <p className="revision-diff-arrow" aria-hidden="true">
-              ↓
-            </p>
-            <p className="card-label">{lessonVersionLabels[lessonVersion]}</p>
-            <p>{isBaselineOnly ? revisedNode : <span className="ai-highlight">{revisedNode}</span>}</p>
-            <p className="revision-diff-note">✓ Applied from an AI suggestion you accepted.</p>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => {
-                setOpenComparison(null)
-                if (editor.statesByKey[scopedKey(step.label)]) {
-                  editor.reopen(scopedKey(step.label))
-                } else {
-                  editor.ask(scopedKey(step.label), [
-                    {
-                      role: 'ai',
-                      text: 'This section was already revised. What would you like to explore or change about it?',
-                    },
-                  ])
-                }
-              }}
-            >
-              Discuss this change
-            </button>
-          </div>
-        )}
-
-        {renderInlineEditor(step.label)}
       </div>
     )
   }
@@ -2144,12 +2618,14 @@ function LessonWorkspaceCanvas({
         <div className="canvas-header">
           <div>
             <p className="card-label">Lesson workspace</p>
-            <h3>{lessonVersionLabels[lessonVersion]} lesson</h3>
+            <h3>{lessonTabLabels[lessonTab]} lesson</h3>
           </div>
           <div className="canvas-header-actions">
             <button
               type="button"
               className="secondary-button"
+              disabled={lessonTab === 'generated'}
+              title={lessonTab === 'generated' ? 'Switch to AI Suggestions or Revised to edit the lesson' : undefined}
               onClick={() => (isEditing ? saveEditing() : startEditing())}
             >
               {isEditing ? 'Save Edits' : 'Edit Lesson'}
@@ -2161,17 +2637,17 @@ function LessonWorkspaceCanvas({
         </div>
 
         <div className="state-selector" role="tablist" aria-label="Lesson version">
-          {(Object.keys(lessonVersionLabels) as LessonVersion[]).map((version) => (
+          {(Object.keys(lessonTabLabels) as LessonTab[]).map((tab) => (
             <button
-              key={version}
+              key={tab}
               type="button"
               role="tab"
-              aria-selected={lessonVersion === version}
-              className={`state-tab ${lessonVersion === version ? 'active' : ''}`}
+              aria-selected={lessonTab === tab}
+              className={`state-tab ${lessonTab === tab ? 'active' : ''}`}
               disabled={isEditing}
-              onClick={() => setLessonVersion(version)}
+              onClick={() => setLessonTab(tab)}
             >
-              {lessonVersionLabels[version]}
+              {lessonTabLabels[tab]}
             </button>
           ))}
         </div>
@@ -2230,98 +2706,604 @@ function LessonWorkspaceCanvas({
 // The standalone "Lesson Workspace" nav page: its own Form/AI Chat panel on
 // the left (a separate LessonPlanningPanel instance/state from the one on
 // the Lesson Planning page) plus the same shared canvas on the right.
-function LessonWorkspacePage({ canvasProps }: { canvasProps: LessonWorkspaceCanvasProps }) {
+function LessonWorkspacePage({
+  onGenerateLessonPlan,
+  lessonGenerated,
+  isGeneratingLesson,
+  canvasProps,
+  planningPanelProps,
+}: {
+  onGenerateLessonPlan: () => void
+  lessonGenerated: boolean
+  isGeneratingLesson: boolean
+  canvasProps: LessonWorkspaceCanvasProps
+  planningPanelProps: PlanningPanelProps
+}) {
   return (
     <div className="planning-layout">
       <LessonPlanningPanel
-        defaultTab="form"
+        {...planningPanelProps}
         chatTitle="AI Planning Assistant"
         chatBadge="Collaborative"
         chatMessages={planningConversation}
+        onGenerate={onGenerateLessonPlan}
       />
 
-      <LessonWorkspaceCanvas {...canvasProps} />
+      {lessonGenerated ? (
+        <LessonWorkspaceCanvas {...canvasProps} />
+      ) : (
+        <LessonWorkspacePlaceholder isGenerating={isGeneratingLesson} />
+      )}
+    </div>
+  )
+}
+
+// Every summary row across all three sections defaults to unselected except
+// the very first Learning Objective idea, so the individual-evidence panel
+// always has something to show rather than opening empty.
+const defaultPatternId = learningObjectiveOverlap[0]?.ideas[0]?.id ?? null
+
+// One clickable row shared by all three summary sections — a pattern's
+// label and its student count. Highlights with the same light-blue
+// selection style used elsewhere in the app (`.trend-item.active` before
+// it, now `.pattern-row.active`) when it's the currently selected pattern.
+function PatternRowButton({
+  row,
+  isActive,
+  onSelect,
+}: {
+  row: PatternRow
+  isActive: boolean
+  onSelect: (id: string) => void
+}) {
+  return (
+    <div
+      className={`pattern-row${isActive ? ' active' : ''}`}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isActive}
+      onClick={() => onSelect(row.id)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect(row.id)
+        }
+      }}
+    >
+      <span className="pattern-row-label">{row.label}</span>
+      <span className="pattern-row-count">{row.count}</span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Student Feedback — the student-facing counterpart to Lesson Planning/
+// Workspace and Class Feedback, but a DIFFERENT content context: this page
+// uses a COVID-19 / handwashing modeling activity (the structures of the
+// coronavirus and of soap, and how soap's structure lets it disrupt the
+// virus and mix with water) rather than the Zombie Fires phenomenon used
+// everywhere else in the prototype — see the teacher-facing pages for that
+// content. Same two-panel shape as the rest of the app — the student's own
+// model and explanation on the left, a persistent Interactive AI Feedback
+// conversation on the right — and the same shared building blocks
+// (ChatThread, chips, composer-box, card styling) rather than a one-off
+// visual language.
+// ---------------------------------------------------------------------------
+
+type ModelTab = 'descriptive' | 'mechanistic'
+
+// Two representations of the SAME model (not two assignments) — switching
+// tabs must never lose either one, so both live in the same component's
+// state the whole time; the tabs only ever change which is on screen.
+// Descriptive = what structures/components are present. Mechanistic = how
+// those structures interact to help explain what happens.
+const modelTabLabels: Record<ModelTab, string> = {
+  descriptive: 'Descriptive Model',
+  mechanistic: 'Mechanistic Model',
+}
+
+const studentTask = {
+  topic: 'COVID-19 & Handwashing: Structure and Function',
+  prompt:
+    "Develop and use models to think about the structures of the coronavirus and soap, then explain how the structure of soap helps it function when mixed with water.",
+}
+
+// The Descriptive Model prompt has two lettered parts (virus, then soap),
+// each with its own set of structures to label — kept as data so the JSX
+// below just maps over it instead of hand-duplicating the two halves.
+const descriptiveModelPrompt: { heading: string; instruction: string; labels: string[] }[] = [
+  {
+    heading: 'A. Coronavirus',
+    instruction: 'Draw a diagram of the coronavirus and label:',
+    labels: ['Protein', 'Fatty envelope', 'Genetic material'],
+  },
+  {
+    heading: 'B. Soap',
+    instruction: 'Draw a diagram of a soap molecule and label:',
+    labels: ['Hydrophilic portion (attracted to water)', 'Hydrophobic portion (attracted to fat)'],
+  },
+]
+
+const mechanisticModelPrompt =
+  'Draw a diagram that helps show how the structures of a soap molecule can help serve the function of helping oil mix with water. Show how soap molecules, oil, and water interact.'
+
+const initialStudentExplanation =
+  "In my model I drew the soap's hydrophobic tail sticking into the virus's fatty envelope, since both of those are supposed to be attracted to fat. I think that's part of how soap breaks the virus apart, but I'm not totally sure yet how the hydrophilic end helps rinse it away with water — I want to add that to my mechanistic model."
+
+// The example exchange from the design spec — seeded so the page always
+// opens mid-conversation, exactly like a student returning to feedback
+// they've already started, grounded in the Descriptive Model (the default
+// tab) since that's what the seeded explanation above is describing.
+const initialAiFeedback: ChatMessage[] = [
+  {
+    role: 'ai',
+    text: 'You labeled the fatty envelope of the coronavirus and the hydrophobic part of the soap molecule. What do you think might happen when those two structures come into contact?',
+  },
+  { role: 'teacher', text: 'Maybe the soap sticks to the fatty part?' },
+  {
+    role: 'ai',
+    text: 'That connection could be useful to show in your model. How could you revise your drawing to represent what you think the soap is doing?',
+  },
+]
+
+// Rotates through generic Socratic follow-ups when nothing in the student's
+// message keyword-matches something more specific below — the point is the
+// conversation always has somewhere to go, never that it runs out of things
+// to ask. Kept separate per model tab so the fallback question still matches
+// what that tab is meant to help students think about (structures/labels for
+// Descriptive, interactions/mechanism for Mechanistic — see section 7).
+const genericDescriptiveFollowUps = [
+  'Which structure in your model would that be part of — is it something you could add a label for?',
+  'Is that a structure you’ve already drawn, or a new part you’d want to add to your model?',
+  'What made you think that structure works that way — something from class, the reading, or your own reasoning?',
+  'How does that structure compare between the virus and the soap molecule in your model?',
+]
+
+const genericMechanisticFollowUps = [
+  'Where in your model would that interaction show up — is it something you could add an arrow for?',
+  'How does that connect to the driving question: how does soap help wash away the virus in water?',
+  'Is that something your model already shows happening, or a new idea you’d want to add?',
+  'What made you think that interaction happens — something from the reading, or your own reasoning?',
+]
+
+// Stands in for a real AI call. Always responds with a scaffolding question
+// grounded in whatever the student just said, never the scientific answer
+// itself — matches the rest of this prototype's "mock reply" convention
+// (see mockDeeperAnalysisReply / mockRevisionFollowUpReply). Sensitive to
+// which model tab the student is currently on (see section 7 of the spec):
+// Descriptive replies stay focused on structures/components/labels,
+// Mechanistic replies stay focused on interactions/mechanism.
+function mockStudentFeedbackReply(message: string, followUpCount: number, modelTab: ModelTab): string {
+  const lower = message.toLowerCase()
+
+  if (modelTab === 'descriptive') {
+    if (lower.includes('protein') || lower.includes('spike')) {
+      return 'You mentioned the protein. Where did you draw it on the coronavirus, and how does its position compare to the fatty envelope in your model?'
+    }
+    if (lower.includes('envelope') || lower.includes('fatty')) {
+      return 'You’re describing the fatty envelope. What part of the soap molecule do you think would interact with it — and did you label that part?'
+    }
+    if (lower.includes('genetic') || lower.includes('rna') || lower.includes('dna')) {
+      return 'You’re thinking about the genetic material. Where is it positioned in your model, and what do you think protects it?'
+    }
+    if (lower.includes('hydrophilic') || lower.includes('water')) {
+      return 'You’re describing the hydrophilic portion. Which end of the soap molecule is that, and how did you show it in your diagram?'
+    }
+    if (lower.includes('hydrophobic') || lower.includes('fat')) {
+      return 'You’re describing the hydrophobic portion. What does that part of the soap molecule get attracted to, based on your model?'
+    }
+    return genericDescriptiveFollowUps[followUpCount % genericDescriptiveFollowUps.length]
+  }
+
+  if (lower.includes('stick') || lower.includes('attach') || lower.includes('grab')) {
+    return 'That connection could be useful to show in your model. How could you revise your drawing to represent what you think the soap is doing?'
+  }
+  if (lower.includes('break') || lower.includes('dissolve') || lower.includes('disrupt') || lower.includes('apart')) {
+    return 'You’re describing something happening to the virus’s structure. What part of your model shows the fatty envelope actually being disrupted?'
+  }
+  if (lower.includes('surround') || lower.includes('cluster') || lower.includes('group') || lower.includes('ball')) {
+    return 'That’s an interesting way to represent it. What’s on the outside of that cluster in your model, and what’s on the inside?'
+  }
+  if (lower.includes('mix') || lower.includes('combine') || (lower.includes('oil') && lower.includes('water'))) {
+    return 'You’re describing how oil and water interact with soap. Which part of the soap molecule is facing the oil, and which part is facing the water in your drawing?'
+  }
+  if (lower.includes('rinse') || lower.includes('wash') || lower.includes('remove') || lower.includes('away')) {
+    return 'You’re describing the virus being carried away. What does your model show happening right before that point?'
+  }
+  return genericMechanisticFollowUps[followUpCount % genericMechanisticFollowUps.length]
+}
+
+function MicButton({ isListening, onClick, label }: { isListening: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      className={`mic-button${isListening ? ' listening' : ''}`}
+      aria-label={isListening ? `Stop recording — ${label}` : `Record — ${label}`}
+      aria-pressed={isListening}
+      onClick={onClick}
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z" />
+        <path
+          fill="currentColor"
+          d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.08A7 7 0 0 0 19 11Z"
+        />
+      </svg>
+    </button>
+  )
+}
+
+// The real hand-drawn example artifacts for each model tab — same
+// convention as ZOMBIE_FIRES_STUDENT_MODEL_IMAGE above: lives in /public so
+// a missing file degrades to a broken-image icon instead of failing the
+// build. handleArtifactUpload (in StudentFeedbackPage) swaps either one out
+// for the student's own uploaded photo.
+const COVID_DESCRIPTIVE_MODEL_EXAMPLE_IMAGE = '/covid-descriptive-model-example.png'
+const COVID_MECHANISTIC_MODEL_EXAMPLE_IMAGE = '/covid-mechanistic-model-example.png'
+
+function StudentFeedbackPage() {
+  const [modelTab, setModelTab] = useState<ModelTab>('descriptive')
+
+  // Each tab's artifact is independent state — switching tabs must never
+  // lose either one (see the ModelTab comment above). null means "showing
+  // the starter reference diagram"; once the student uploads a photo of
+  // their own drawing, this holds an object URL for it instead.
+  const [descriptiveArtifactUrl, setDescriptiveArtifactUrl] = useState<string | null>(null)
+  const [mechanisticArtifactUrl, setMechanisticArtifactUrl] = useState<string | null>(null)
+  const artifactFileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleArtifactUpload = (tab: ModelTab, file: File | undefined) => {
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const previousUrl = tab === 'descriptive' ? descriptiveArtifactUrl : mechanisticArtifactUrl
+    if (previousUrl) URL.revokeObjectURL(previousUrl)
+    if (tab === 'descriptive') setDescriptiveArtifactUrl(url)
+    else setMechanisticArtifactUrl(url)
+  }
+
+  const [explanation, setExplanation] = useState(initialStudentExplanation)
+  const explanationRef = useRef<HTMLTextAreaElement>(null)
+  const [isExplanationListening, setIsExplanationListening] = useState(false)
+  const explanationListenTimeoutRef = useRef<number | null>(null)
+
+  const [feedbackMessages, setFeedbackMessages] = useState<ChatMessage[]>(initialAiFeedback)
+  const [feedbackDraft, setFeedbackDraft] = useState('')
+  const [isComposerListening, setIsComposerListening] = useState(false)
+  const composerListenTimeoutRef = useRef<number | null>(null)
+  const [isAiThinking, setIsAiThinking] = useState(false)
+  const aiThinkingTimeoutRef = useRef<number | null>(null)
+  const followUpCountRef = useRef(0)
+  const chatScrollRef = useRef<HTMLDivElement | null>(null)
+
+  const [isRevisionFlash, setIsRevisionFlash] = useState(false)
+  const revisionFlashTimeoutRef = useRef<number | null>(null)
+
+  // The chat area is a fixed-height, internally scrolling pane (see
+  // .deeper-analysis-chat, reused here) — keep it pinned to the latest
+  // message as the conversation grows, same as Deeper AI Analysis.
+  useEffect(() => {
+    const container = chatScrollRef.current
+    if (container) container.scrollTop = container.scrollHeight
+  }, [feedbackMessages, isAiThinking])
+
+  useEffect(() => {
+    return () => {
+      if (explanationListenTimeoutRef.current !== null) window.clearTimeout(explanationListenTimeoutRef.current)
+      if (composerListenTimeoutRef.current !== null) window.clearTimeout(composerListenTimeoutRef.current)
+      if (aiThinkingTimeoutRef.current !== null) window.clearTimeout(aiThinkingTimeoutRef.current)
+      if (revisionFlashTimeoutRef.current !== null) window.clearTimeout(revisionFlashTimeoutRef.current)
+    }
+  }, [])
+
+  // Both mic controls are mocked the same way (no real speech-to-thing API):
+  // toggling "listening" on, then after a short pause, appending a canned
+  // transcript — enough to demonstrate "type or speak" without a flaky
+  // browser API dependency.
+  const toggleExplanationMic = () => {
+    if (isExplanationListening) {
+      if (explanationListenTimeoutRef.current !== null) window.clearTimeout(explanationListenTimeoutRef.current)
+      setIsExplanationListening(false)
+      return
+    }
+    setIsExplanationListening(true)
+    explanationListenTimeoutRef.current = window.setTimeout(() => {
+      setExplanation((prev) =>
+        `${prev.trim() ? `${prev.trim()} ` : ''}Also, I think the hydrophilic end is what lets the soap mix into the water in the first place.`,
+      )
+      setIsExplanationListening(false)
+    }, 1800)
+  }
+
+  const toggleComposerMic = () => {
+    if (isComposerListening) {
+      if (composerListenTimeoutRef.current !== null) window.clearTimeout(composerListenTimeoutRef.current)
+      setIsComposerListening(false)
+      return
+    }
+    setIsComposerListening(true)
+    composerListenTimeoutRef.current = window.setTimeout(() => {
+      setFeedbackDraft((prev) =>
+        `${prev.trim() ? `${prev.trim()} ` : ''}I think the hydrophobic tail pulls toward the virus's fatty envelope, away from the water.`,
+      )
+      setIsComposerListening(false)
+    }, 1800)
+  }
+
+  const sendFeedbackMessage = () => {
+    const text = feedbackDraft.trim()
+    if (!text || isAiThinking) return
+    setFeedbackMessages((prev) => [...prev, { role: 'teacher', text }])
+    setFeedbackDraft('')
+    setIsAiThinking(true)
+    const count = followUpCountRef.current
+    followUpCountRef.current += 1
+    const tab = modelTab
+    aiThinkingTimeoutRef.current = window.setTimeout(() => {
+      setFeedbackMessages((prev) => [...prev, { role: 'ai', text: mockStudentFeedbackReply(text, count, tab) }])
+      setIsAiThinking(false)
+    }, 700)
+  }
+
+  // "Revise My Response" never touches the student's text itself — it just
+  // brings the editable explanation back into focus, so the student decides
+  // what (if anything) to change based on the feedback they just read.
+  const handleReviseClick = () => {
+    explanationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    explanationRef.current?.focus()
+    setIsRevisionFlash(true)
+    if (revisionFlashTimeoutRef.current !== null) window.clearTimeout(revisionFlashTimeoutRef.current)
+    revisionFlashTimeoutRef.current = window.setTimeout(() => setIsRevisionFlash(false), 1200)
+  }
+
+  return (
+    <div className="student-workspace-layout">
+      <section className="student-model-panel">
+        <div className="student-task-card">
+          <p className="card-label">Your Task</p>
+          <h3>{studentTask.topic}</h3>
+          <p>{studentTask.prompt}</p>
+        </div>
+
+        <div className="planning-tabs" role="tablist" aria-label="Model representation">
+          {(Object.keys(modelTabLabels) as ModelTab[]).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={modelTab === tab}
+              className={`planning-tab ${modelTab === tab ? 'active' : ''}`}
+              onClick={() => setModelTab(tab)}
+            >
+              {modelTabLabels[tab]}
+            </button>
+          ))}
+        </div>
+
+        {modelTab === 'descriptive' ? (
+          <div className="model-representation-area">
+            <div className="model-task-prompt">
+              <p className="model-task-prompt-label">Descriptive Model</p>
+              {descriptiveModelPrompt.map((section) => (
+                <div key={section.heading} className="model-task-prompt-section">
+                  <p className="model-task-prompt-heading">{section.heading}</p>
+                  <p>{section.instruction}</p>
+                  <ul>
+                    {section.labels.map((label) => (
+                      <li key={label}>{label}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <img
+              src={descriptiveArtifactUrl ?? COVID_DESCRIPTIVE_MODEL_EXAMPLE_IMAGE}
+              alt="Descriptive model of the coronavirus (protein, fatty envelope, genetic material) and a soap molecule (hydrophilic head, hydrophobic tail)"
+              className="student-model-preview"
+            />
+
+            <div className="model-representation-actions">
+              <input
+                ref={artifactFileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(event) => handleArtifactUpload('descriptive', event.target.files?.[0])}
+              />
+              <button type="button" className="secondary-button" onClick={() => artifactFileInputRef.current?.click()}>
+                Add Model
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="model-representation-area">
+            <div className="model-task-prompt">
+              <p className="model-task-prompt-label">Mechanistic Model</p>
+              <p>{mechanisticModelPrompt}</p>
+            </div>
+
+            <img
+              src={mechanisticArtifactUrl ?? COVID_MECHANISTIC_MODEL_EXAMPLE_IMAGE}
+              alt="Mechanistic model of soap molecules trapping oil droplets in water"
+              className="student-model-preview"
+            />
+
+            <div className="model-representation-actions">
+              <input
+                ref={artifactFileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(event) => handleArtifactUpload('mechanistic', event.target.files?.[0])}
+              />
+              <button type="button" className="secondary-button" onClick={() => artifactFileInputRef.current?.click()}>
+                Add Model
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className={`student-explanation-field${isRevisionFlash ? ' revision-flash' : ''}`}>
+          <div className="student-explanation-header">
+            <span>Explain your thinking</span>
+            <span className="empty-state-support">Type your explanation, or use the microphone to speak it.</span>
+          </div>
+          <div className="student-explanation-input-row">
+            <textarea
+              ref={explanationRef}
+              rows={6}
+              value={explanation}
+              onChange={(event) => setExplanation(event.target.value)}
+              placeholder="Explain how your model shows the structures of the coronavirus and soap, and how soap's structure helps it work with water..."
+            />
+            <MicButton isListening={isExplanationListening} onClick={toggleExplanationMic} label="your explanation" />
+          </div>
+          {isExplanationListening && <p className="mic-listening-note">🎤 Listening…</p>}
+        </div>
+
+        <button type="button" className="primary-button revise-button" onClick={handleReviseClick}>
+          Revise My Response
+        </button>
+      </section>
+
+      <section className="student-ai-panel">
+        <div className="panel-header compact">
+          <h3>Interactive AI Feedback</h3>
+        </div>
+        <p className="empty-state-support deeper-analysis-subtitle">
+          Your AI feedback partner asks questions about your model and explanation — it won’t just give you the
+          answer.
+        </p>
+
+        <div className="deeper-analysis-body">
+          <div className="deeper-analysis-chat" ref={chatScrollRef}>
+            <ChatThread messages={feedbackMessages} />
+            {isAiThinking && <p className="empty-state-support">AI is thinking…</p>}
+          </div>
+
+          <div className="composer-box student-feedback-composer">
+            <input
+              type="text"
+              placeholder="Reply to the feedback..."
+              value={feedbackDraft}
+              onChange={(event) => setFeedbackDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') sendFeedbackMessage()
+              }}
+              disabled={isAiThinking}
+            />
+            <MicButton isListening={isComposerListening} onClick={toggleComposerMic} label="your reply" />
+            <button
+              type="button"
+              className="primary-button"
+              onClick={sendFeedbackMessage}
+              disabled={isAiThinking || !feedbackDraft.trim()}
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
 
 function FeedbackDashboardPage() {
-  const [selectedTrendId, setSelectedTrendId] = useState(classTrends[0].id)
-  const [selectedStudentName, setSelectedStudentName] = useState<string | null>(null)
+  const [selectedPatternId, setSelectedPatternId] = useState<string | null>(defaultPatternId)
   const [facilitationQuestions, setFacilitationQuestions] = useState<string[]>(suggestedQuestions)
+  const [isRegeneratingQuestions, setIsRegeneratingQuestions] = useState(false)
 
-  const [trendAnalysis, setTrendAnalysis] = useState<ClassTrend | null>(null)
-  const [analysisMessages, setAnalysisMessages] = useState<ChatMessage[]>([])
-  const [analysisDraftQuestion, setAnalysisDraftQuestion] = useState('')
+  const nextQuestionSetIndexRef = useRef(0)
+  const regenerationTimeoutRef = useRef<number | null>(null)
 
-  const [refineDraft, setRefineDraft] = useState('')
-  const [refinedQuestions, setRefinedQuestions] = useState<string[] | null>(null)
-  const [refinedEvidence, setRefinedEvidence] = useState<FacilitationEvidenceBasis | null>(null)
-
-  const selectedTrend = classTrends.find((trend) => trend.id === selectedTrendId) ?? classTrends[0]
-  const examples = studentExamplesByTrend[selectedTrend.id] ?? []
-
-  const openTrendAnalysis = (trend: ClassTrend) => {
-    const isSameContext = trendAnalysis?.id === trend.id
-    if (!isSameContext) {
-      const exampleConversation = trendExampleConversations[trend.id]
-      setAnalysisMessages(exampleConversation ?? [{ role: 'ai', text: trendOpeningMessage(trend) }])
-      setAnalysisDraftQuestion('')
+  useEffect(() => {
+    return () => {
+      if (regenerationTimeoutRef.current !== null) window.clearTimeout(regenerationTimeoutRef.current)
     }
-    setTrendAnalysis(trend)
+  }, [])
+
+  const selectedPattern = selectedPatternId ? allPatternRows[selectedPatternId] : undefined
+
+  const regenerateFacilitationQuestions = () => {
+    setIsRegeneratingQuestions(true)
+    regenerationTimeoutRef.current = window.setTimeout(() => {
+      const nextSet = alternateFacilitationQuestionSets[nextQuestionSetIndexRef.current % alternateFacilitationQuestionSets.length]
+      nextQuestionSetIndexRef.current += 1
+      setFacilitationQuestions([...nextSet])
+      setIsRegeneratingQuestions(false)
+    }, 900)
   }
 
-  const askAnalysisPrompt = (prompt: QuickPrompt) => {
-    setAnalysisMessages((prev) => [
-      ...prev,
-      { role: 'teacher', text: prompt.question },
-      { role: 'ai', text: prompt.answer },
-    ])
+  const [deeperChatMessages, setDeeperChatMessages] = useState<ChatMessage[]>([])
+  const [deeperChatDraft, setDeeperChatDraft] = useState('')
+  const [isDeeperAiThinking, setIsDeeperAiThinking] = useState(false)
+  const [focusedStudent, setFocusedStudent] = useState<StudentEvidence | null>(null)
+  const deeperAiTimeoutRef = useRef<number | null>(null)
+  // Student Evidence and Deeper AI Analysis are one unified, single-scroll
+  // workspace (see .evidence-workspace-scroll) rather than two independently
+  // scrolling panes, so this ref targets the whole workspace's scroll
+  // container, not just the chat transcript.
+  const evidenceWorkspaceScrollRef = useRef<HTMLDivElement | null>(null)
+
+  // Without this, the workspace would silently stay scrolled wherever the
+  // teacher left it as new messages arrive below the fold, instead of
+  // following the conversation down to the composer like every other chat
+  // surface in the app. Guarded to skip the empty/not-thinking case —
+  // otherwise this would also fire right after the pattern-change reset
+  // below (which clears deeperChatMessages to a new empty array), fighting
+  // that effect's scrollTop-to-0 and leaving the workspace stuck scrolled
+  // to the bottom every time the teacher picks a new pattern.
+  useEffect(() => {
+    if (deeperChatMessages.length === 0 && !isDeeperAiThinking) return
+    const container = evidenceWorkspaceScrollRef.current
+    if (container) container.scrollTop = container.scrollHeight
+  }, [deeperChatMessages, isDeeperAiThinking])
+
+  // A new pattern means a new context for both the student evidence shown
+  // and "Deeper AI Analysis" — start the conversation over rather than
+  // carrying stale answers about a different group of students into the new
+  // selection, and scroll the workspace back to the top so the teacher sees
+  // the new Student Evidence header/context first, not wherever the
+  // previous pattern's scroll position happened to land.
+  useEffect(() => {
+    setDeeperChatMessages([])
+    setDeeperChatDraft('')
+    setIsDeeperAiThinking(false)
+    setFocusedStudent(null)
+    if (deeperAiTimeoutRef.current !== null) {
+      window.clearTimeout(deeperAiTimeoutRef.current)
+      deeperAiTimeoutRef.current = null
+    }
+    if (evidenceWorkspaceScrollRef.current) evidenceWorkspaceScrollRef.current.scrollTop = 0
+  }, [selectedPatternId])
+
+  useEffect(() => {
+    return () => {
+      if (deeperAiTimeoutRef.current !== null) window.clearTimeout(deeperAiTimeoutRef.current)
+    }
+  }, [])
+
+  const askDeeperAnalysis = (question: string) => {
+    const text = question.trim()
+    if (!text || !selectedPattern || isDeeperAiThinking) return
+    setDeeperChatMessages((prev) => [...prev, { role: 'teacher', text }])
+    setDeeperChatDraft('')
+    setIsDeeperAiThinking(true)
+    const pattern = selectedPattern
+    const student = focusedStudent
+    deeperAiTimeoutRef.current = window.setTimeout(() => {
+      setDeeperChatMessages((prev) => [...prev, { role: 'ai', text: mockDeeperAnalysisReply(pattern, text, student) }])
+      setIsDeeperAiThinking(false)
+    }, 700)
   }
 
-  const sendAnalysisQuestion = () => {
-    const text = analysisDraftQuestion.trim()
-    if (!text || !trendAnalysis) return
-    setAnalysisMessages((prev) => [
-      ...prev,
-      { role: 'teacher', text },
-      {
-        role: 'ai',
-        text: `That's worth exploring — I'd start by comparing a few of the stronger and developing student responses for ${trendAnalysis.label.toLowerCase()} to see where they diverge.`,
-      },
-    ])
-    setAnalysisDraftQuestion('')
-  }
-
-  const applyFacilitationFocus = (focus: FacilitationFocus) => {
-    // Copy rather than reuse the canned array reference, so this proposal is
-    // never accidentally aliased with facilitationQuestions or a previous
-    // proposal — each becomes its own independent snapshot.
-    setRefinedQuestions([...facilitationFocusQuestionSets[focus]])
-    setRefinedEvidence(facilitationFocusEvidence[focus])
-  }
-
-  const submitCustomFacilitationRequest = () => {
-    const text = refineDraft.trim()
-    if (!text) return
-    setRefinedQuestions(customFacilitationQuestions(text))
-    setRefinedEvidence(customFacilitationEvidence(text))
-    setRefineDraft('')
-  }
-
-  const useRefinedQuestions = () => {
-    if (!refinedQuestions) return
-    // The approved list becomes the new current questions — and, since it's
-    // its own array (not the same reference as refinedQuestions), it is what
-    // any future refinement will read as "current" from here on.
-    setFacilitationQuestions([...refinedQuestions])
-    setRefinedQuestions(null)
-    setRefinedEvidence(null)
-  }
-
-  const keepCurrentQuestions = () => {
-    setRefinedQuestions(null)
-    setRefinedEvidence(null)
+  // Clicking the comment/"Ask AI" action on one student's evidence card
+  // narrows Deeper AI Analysis to that student — every subsequent reply is
+  // framed around their specific response/artifact until the teacher
+  // focuses someone else or picks a different Class Summary pattern.
+  const focusStudentInDeeperAnalysis = (student: StudentEvidence) => {
+    setFocusedStudent(student)
+    setDeeperChatMessages((prev) => [...prev, { role: 'ai', text: buildStudentFocusNote(student) }])
   }
 
   return (
@@ -2343,241 +3325,222 @@ function FeedbackDashboardPage() {
       </div>
 
       <div className="report-grid">
-        <section className="report-panel left-panel">
+        <section className="report-panel class-summary-panel">
           <div className="panel-header compact">
-            <h3>Overall class trends</h3>
+            <h3>Class Summary</h3>
           </div>
 
-          <div className="trend-list">
-            {classTrends.map((trend) => {
-              const isSelected = trend.id === selectedTrend.id
-              return (
-                <div
-                  key={trend.id}
-                  className={`trend-item${isSelected ? ' active' : ''}`}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={isSelected}
-                  onClick={() => {
-                    setSelectedTrendId(trend.id)
-                    setSelectedStudentName(null)
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      setSelectedTrendId(trend.id)
-                      setSelectedStudentName(null)
-                    }
-                  }}
-                >
-                  <div className="trend-item-row">
-                    <span>{trend.label}</span>
-                    <span className="trend-stat">
-                      <strong>{trend.percent}%</strong>
-                      <span className="trend-count">
-                        {trend.count}/{trend.total}
-                      </span>
-                    </span>
-                  </div>
-                  {isSelected && (
-                    <button
-                      type="button"
-                      className="secondary-button analyze-trend-button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        openTrendAnalysis(trend)
-                      }}
-                    >
-                      Analyze with AI
-                    </button>
-                  )}
+          <div className="summary-section summary-section-objective">
+            <p className="summary-section-title">Learning Objective Overlap</p>
+            {learningObjectiveOverlap.map((group) => (
+              <div key={group.objective} className="pattern-group">
+                <p className="pattern-group-title">Learning Objective: {group.objective}</p>
+                <div className="pattern-row-list">
+                  {group.ideas.map((row) => (
+                    <PatternRowButton
+                      key={row.id}
+                      row={row}
+                      isActive={selectedPatternId === row.id}
+                      onSelect={setSelectedPatternId}
+                    />
+                  ))}
                 </div>
-              )
-            })}
+              </div>
+            ))}
+          </div>
+
+          <div className="summary-section summary-section-practice">
+            <p className="summary-section-title">Engagement in Science Practices</p>
+            {scienceInPracticePatterns.map((group) => (
+              <div key={group.practice} className="pattern-group">
+                <p className="pattern-group-title">{group.practice}</p>
+                <div className="pattern-row-list">
+                  {group.patterns.map((row) => (
+                    <PatternRowButton
+                      key={row.id}
+                      row={row}
+                      isActive={selectedPatternId === row.id}
+                      onSelect={setSelectedPatternId}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="summary-section summary-section-misconception">
+            <p className="summary-section-title">Misconceptions</p>
+            <div className="pattern-row-list">
+              {misconceptionPatterns.map((row) => (
+                <PatternRowButton
+                  key={row.id}
+                  row={row}
+                  isActive={selectedPatternId === row.id}
+                  onSelect={setSelectedPatternId}
+                />
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="report-panel right-panel">
-          <div className="panel-header compact">
-            <h3>Student examples</h3>
-            <span className="tag">{selectedTrend.label}</span>
-          </div>
+        <div className="right-column">
+          {/* One unified, single-scroll Student Evidence workspace — Deeper
+              AI Analysis is a section within it (see .deeper-analysis-section
+              below), not a second standalone card with its own scrollbar. */}
+          <section
+            className={`report-panel right-panel evidence-workspace-panel${selectedPattern ? ` evidence-${selectedPattern.kind}` : ''}`}
+          >
+            <div className="evidence-workspace-scroll" ref={evidenceWorkspaceScrollRef}>
+              <div className="panel-header">
+                <h3>Student Evidence</h3>
+              </div>
+              {selectedPattern && (
+                <p className={`evidence-context-row tag evidence-tag-${selectedPattern.kind}`}>
+                  {selectedPattern.label} · {selectedPattern.count} students
+                </p>
+              )}
 
-          <div className="student-list">
-            {examples.map((student) => {
-              const isSelected = selectedStudentName === student.name
-              return (
-                <div
-                  key={student.name}
-                  className={`student-card${isSelected ? ' active' : ''}`}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={isSelected}
-                  onClick={() => setSelectedStudentName((prev) => (prev === student.name ? null : student.name))}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      setSelectedStudentName((prev) => (prev === student.name ? null : student.name))
-                    }
-                  }}
-                >
-                  <div className="student-header">
-                    <h4>{student.name}</h4>
-                    <span className="tag">{student.level}</span>
-                  </div>
-                  <p className="student-quote">&ldquo;{student.quote}&rdquo;</p>
-                  <p className="student-note">{student.note}</p>
+              {selectedPattern ? (
+                <div className="student-list">
+                  {selectedPattern.students.map((student) => {
+                    // Priority order is always: name, the student's own words,
+                    // then their actual model. A real image IS the artifact —
+                    // a text caption describing it would just restate what the
+                    // teacher can already see, so the caption only renders as a
+                    // fallback for students with no scanned/photographed model.
+                    const responseBlock = student.response && (
+                      <p className="student-quote">&ldquo;{student.response}&rdquo;</p>
+                    )
+                    const imageBlock = student.artifactImage && (
+                      <img
+                        src={student.artifactImage}
+                        alt={`${student.name}'s zombie fire model`}
+                        className="student-artifact-image"
+                      />
+                    )
+                    const artifactBlock = !student.artifactImage && student.artifact && (
+                      <p className="student-artifact">{student.artifact}</p>
+                    )
+                    return (
+                      <div
+                        key={student.name}
+                        className={`evidence-card${focusedStudent?.name === student.name ? ' student-focused' : ''}`}
+                      >
+                        <div className="student-header">
+                          <h4>{student.name}</h4>
+                        </div>
+                        {responseBlock}
+                        {imageBlock}
+                        {artifactBlock}
+                        <div className="student-footer">
+                          <button
+                            type="button"
+                            className="student-ask-ai-button"
+                            aria-label={`Ask AI about ${student.name}'s response`}
+                            onClick={() => focusStudentInDeeperAnalysis(student)}
+                          >
+                            <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false">
+                              <path
+                                fill="currentColor"
+                                d="M4 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1v2.5a.5.5 0 0 0 .8.4L9.33 14H16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4Z"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              )
-            })}
-          </div>
-        </section>
+              ) : (
+                <p className="empty-state-support">Select a pattern on the left to see individual student evidence.</p>
+              )}
+
+              <div className="deeper-analysis-section">
+                <div className="panel-header">
+                  <h3>Deeper AI Analysis</h3>
+                </div>
+
+                <p className="empty-state-support deeper-analysis-subtitle">
+                  Ask follow-up questions about the selected student responses and artifacts.
+                </p>
+
+                {selectedPattern ? (
+                  <div className="deeper-analysis-body">
+                    <div className="deeper-analysis-chat">
+                      {deeperChatMessages.length === 0 && !isDeeperAiThinking ? (
+                        <p className="deeper-analysis-chat-empty">Ask a question below to start the conversation.</p>
+                      ) : (
+                        <ChatThread messages={deeperChatMessages} />
+                      )}
+                      {isDeeperAiThinking && <p className="empty-state-support">AI is analyzing these responses…</p>}
+                    </div>
+
+                    <div className="composer-box">
+                      <input
+                        type="text"
+                        placeholder="Ask about these student responses..."
+                        value={deeperChatDraft}
+                        onChange={(event) => setDeeperChatDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') askDeeperAnalysis(deeperChatDraft)
+                        }}
+                        disabled={isDeeperAiThinking}
+                      />
+                      <button
+                        type="button"
+                        className="send-button"
+                        aria-label="Send"
+                        onClick={() => askDeeperAnalysis(deeperChatDraft)}
+                        disabled={isDeeperAiThinking || !deeperChatDraft.trim()}
+                      >
+                        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">
+                          <path
+                            fill="currentColor"
+                            d="M3 10a1 1 0 0 1 1-1h9.09l-3.3-3.3a1 1 0 1 1 1.42-1.4l5 5a1 1 0 0 1 0 1.4l-5 5a1 1 0 0 1-1.42-1.4l3.3-3.3H4a1 1 0 0 1-1-1Z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="empty-state-support">Select a pattern on the left to enable deeper AI analysis.</p>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
 
       <section className="questions-panel">
         <div className="panel-header compact">
           <h3>Suggested Facilitation Questions</h3>
+          <button
+            type="button"
+            className="regenerate-button"
+            onClick={regenerateFacilitationQuestions}
+            disabled={isRegeneratingQuestions}
+          >
+            <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M10 4a6 6 0 0 1 5.29 3.17.75.75 0 1 1-1.33.7A4.5 4.5 0 1 0 14.4 13h-1.65a.75.75 0 0 1 0-1.5h3.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-1.46A6 6 0 1 1 10 4Z"
+              />
+            </svg>
+            Regenerate Questions
+          </button>
         </div>
 
-        <ul className="question-list">
-          {facilitationQuestions.map((question) => (
-            <li key={question}>{question}</li>
-          ))}
-        </ul>
-
-        <div className="facilitation-refine">
-          <p className="card-label">Refine with AI</p>
-
-          <div className="practice-chip-row">
-            {facilitationFocusOptions.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                className="practice-chip"
-                onClick={() => applyFacilitationFocus(option.id)}
-              >
-                {option.label}
-              </button>
+        {isRegeneratingQuestions ? (
+          <p className="empty-state-support">Generating new questions…</p>
+        ) : (
+          <ul className="question-list">
+            {facilitationQuestions.map((question) => (
+              <li key={question}>{question}</li>
             ))}
-          </div>
-
-          <div className="composer-box">
-            <input
-              type="text"
-              placeholder="Ask AI to refine these questions..."
-              value={refineDraft}
-              onChange={(event) => setRefineDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') submitCustomFacilitationRequest()
-              }}
-            />
-            <button type="button" className="primary-button" onClick={submitCustomFacilitationRequest}>
-              Refine
-            </button>
-          </div>
-
-          {refinedQuestions && (
-            <div className="inline-ai-preview">
-              <p className="card-label">Proposed facilitation questions</p>
-              {refinedEvidence && (
-                <div className="facilitation-evidence-basis">
-                  <p className="lesson-hint">
-                    <strong>Based on class evidence:</strong> {refinedEvidence.evidence}
-                  </p>
-                  <p className="lesson-hint">
-                    <strong>Instructional focus:</strong> {refinedEvidence.instructionalFocus}
-                  </p>
-                </div>
-              )}
-              <ul className="question-list">
-                {refinedQuestions.map((question) => (
-                  <li key={question}>{question}</li>
-                ))}
-              </ul>
-              <div className="revision-actions">
-                <button type="button" className="accept-button" onClick={useRefinedQuestions}>
-                  Use These Questions
-                </button>
-                <button type="button" className="reject-button" onClick={keepCurrentQuestions}>
-                  Keep Current Questions
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+          </ul>
+        )}
       </section>
 
-      {trendAnalysis && (
-        <div className="ai-analysis-backdrop" onClick={() => setTrendAnalysis(null)}>
-          <aside className="ai-analysis-drawer" onClick={(event) => event.stopPropagation()}>
-            <div className="nav-drawer-header">
-              <div>
-                <p className="eyebrow">AI Analysis</p>
-                <h3>Analyze Class Trends</h3>
-              </div>
-              <button
-                type="button"
-                className="drawer-close"
-                aria-label="Close AI analysis"
-                onClick={() => setTrendAnalysis(null)}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="lesson-context-card">
-              <p className="card-label">Current context</p>
-              <p className="dashboard-task-question">
-                {trendAnalysis.label} — {trendAnalysis.percent}% ({trendAnalysis.count}/{trendAnalysis.total})
-              </p>
-            </div>
-
-            <div className="trend-chat-thread">
-              {analysisMessages.map((message, index) => {
-                const isTeacher = message.role === 'teacher'
-                return (
-                  <div key={index} className={`trend-chat-row ${isTeacher ? 'trend-chat-row-teacher' : 'trend-chat-row-ai'}`}>
-                    <p className="trend-chat-speaker">{isTeacher ? 'Teacher' : 'AI Analysis'}</p>
-                    <div className={`trend-chat-bubble ${isTeacher ? 'trend-chat-bubble-teacher' : 'trend-chat-bubble-ai'}`}>
-                      {message.text}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            <div className="trend-chat-suggestions">
-              {trendQuickPrompts(trendAnalysis)
-                .slice(0, 2)
-                .map((prompt) => (
-                  <button
-                    key={prompt.question}
-                    type="button"
-                    className="practice-chip"
-                    onClick={() => askAnalysisPrompt(prompt)}
-                  >
-                    {prompt.question}
-                  </button>
-                ))}
-            </div>
-
-            <div className="composer-box">
-              <input
-                type="text"
-                placeholder="Ask a follow-up question..."
-                value={analysisDraftQuestion}
-                onChange={(event) => setAnalysisDraftQuestion(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') sendAnalysisQuestion()
-                }}
-              />
-              <button type="button" className="primary-button" onClick={sendAnalysisQuestion}>
-                Send
-              </button>
-            </div>
-          </aside>
-        </div>
-      )}
     </div>
   )
 }
