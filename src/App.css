@@ -14,11 +14,46 @@
 }
 
 .brand-subtitle {
-  font-size: 0.66rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.82rem;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.4;
   color: #5a7385;
-  max-width: 520px;
+  max-width: 560px;
+}
+
+/* Spells "PARTNERS" — one letter per word — so only that letter stands out
+   against the rest of the (otherwise unstyled) subtitle text. Color comes
+   from one of the brand-color-* classes below, paired per letter-group with
+   the matching letters in .brand-name, so title and subtitle always use the
+   exact same color values. See the brand-subtitle/brand-name spans in
+   App.tsx. */
+.brand-subtitle-highlight {
+  font-weight: 700;
+}
+
+/* Shared color system for "PARTNERS", split into the same four letter-
+   groups in both .brand-name and the subtitle's highlighted letters:
+   PAR = blue, TN = green, ER = purple, S = orange. Blue and green reuse the
+   app's existing primary/teal accents (same values as .card-label and the
+   Mechanistic Model badge); purple and orange are new but pitched at the
+   same moderate saturation and contrast level as those two. */
+.brand-color-blue {
+  color: #2f6fed;
+}
+
+.brand-color-green {
+  color: #1f7a68;
+}
+
+.brand-color-purple {
+  color: #6d28d9;
+}
+
+.brand-color-orange {
+  color: #97701e;
 }
 
 .eyebrow {
@@ -1158,16 +1193,17 @@ textarea {
   padding: 24px 22px;
 }
 
-/* Learning Objective Overlap, Engagement in Science Practices, and
-   Misconceptions live inside one "Class Summary" card as three distinct
-   layers rather than three separate cards — each keeps its own subtle,
-   professional accent (a tinted background and colored left border) so
-   the categories stay visually distinguishable while reading as one
-   compact, continuous list a teacher can scan straight down, with no tab
-   switching required. Misconceptions uses a light amber, kept as muted as
-   the blue and teal accents beside it — not a saturated warning color —
-   so it reads as one of three equal categories, not a grade or a failure
-   callout. */
+/* Learning Objective Overlap, Engagement in Science Practices, and Areas
+   for Improvement (internally still `summary-section-misconception` — see
+   misconceptionPatterns in App.tsx) live inside one "Class Summary" card as
+   three distinct layers rather than three separate cards — each keeps its
+   own subtle, professional accent (a tinted background and colored left
+   border) so the categories stay visually distinguishable while reading as
+   one compact, continuous list a teacher can scan straight down, with no
+   tab switching required. Areas for Improvement uses a light amber, kept as
+   muted as the blue and teal accents beside it — not a saturated warning
+   color — so it reads as one of three equal categories, not a grade or a
+   failure callout. */
 .summary-section {
   border-left: 3px solid transparent;
   border-radius: 0 10px 10px 0;
@@ -1580,7 +1616,7 @@ textarea {
 
 /* ---------------------------------------------------------------------
    Student Feedback page — student's model/explanation workspace (left) and
-   a persistent Interactive AI Feedback conversation (right). Reuses shared
+   a persistent AI Feedback conversation (right). Reuses shared
    building blocks (.planning-tabs, .practice-chip, .lesson-context-card,
    .composer-box, .deeper-analysis-body/.deeper-analysis-chat) so it stays
    visually consistent with the teacher-facing pages instead of introducing
@@ -1655,6 +1691,83 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* AI Feedback panel — a subtle per-state tint so switching
+   between Descriptive and Mechanistic is obvious even at a glance, without
+   the two states reading as unrelated tools (see StudentFeedbackPage). Both
+   reuse the same blue/teal accent pair the app already uses elsewhere for
+   this kind of soft, left-border-tinted state (.summary-section-objective /
+   .summary-section-practice) — Descriptive gets the blue "primary" tint,
+   Mechanistic the teal "next stage" tint. */
+.ai-panel-descriptive {
+  background: #f6f9ff;
+  border-color: #dbe8fb;
+}
+
+.ai-panel-mechanistic {
+  background: #f4faf9;
+  border-color: #d3ece7;
+}
+
+.ai-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* The DESCRIPTIVE MODEL / MECHANISTIC MODEL badge next to the "Interactive
+   AI Feedback" heading — same pill shape as the rest of the app's badges,
+   just recolored per state so it doubles as the panel's tint indicator. */
+.ai-panel-badge {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.ai-panel-descriptive .ai-panel-badge {
+  background: #e9f2ff;
+  color: #1a4f8d;
+}
+
+.ai-panel-mechanistic .ai-panel-badge {
+  background: #e3f5f1;
+  color: #1f7a68;
+}
+
+/* The "Building on your Descriptive Model" note, Mechanistic tab only —
+   visible but subtle: plain text, not another loud badge, so it reads as
+   context rather than competing with the DESCRIPTIVE/MECHANISTIC badge
+   above it. */
+.ai-panel-progression-note {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1f7a68;
+}
+
+/* AI chat bubbles recolored to match each state's tint, scoped to this
+   chat thread only (see the `ai-panel-chat-${modelTab}` className passed to
+   ChatThread in StudentFeedbackPage) — .ai-message/.teacher-message stay
+   the shared global default everywhere else in the app. Only the AI bubble
+   changes color; .teacher-message is left untouched here so the student's
+   own bubbles stay the same neutral gray in both states. Descriptive keeps
+   the app's existing blue .ai-message gradient (restated explicitly here so
+   both states are equally deliberate); Mechanistic swaps it for the same
+   subtle teal used by the Mechanistic badge/panel tint above, at a pastel
+   strength that keeps the dark text high-contrast. */
+.ai-panel-chat-descriptive .ai-message {
+  background: linear-gradient(135deg, #eaf4ff, #dfefff);
+  color: #1d3e66;
+}
+
+.ai-panel-chat-mechanistic .ai-message {
+  background: linear-gradient(135deg, #e7f7f2, #d9f0e8);
+  color: #0f5e4c;
 }
 
 /* The Descriptive/Mechanistic task prompt shown above the model itself
@@ -1792,10 +1905,6 @@ textarea {
   color: #c53030;
   font-size: 0.78rem;
   font-weight: 600;
-}
-
-.revise-button {
-  align-self: flex-start;
 }
 
 .student-feedback-composer input {

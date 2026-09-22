@@ -439,7 +439,11 @@ const learningObjectiveOverlap: LearningObjectiveGroup[] = [
 
 // Section B — Engagement in Science Practices. One group per practice
 // offered on the Lesson Planning form (see `practiceOptions`), each listing
-// the specific ways students' models and responses demonstrated it.
+// the specific ways students' models and responses demonstrated it. Only
+// "Develop and Use Models" is included — this lesson didn't yet ask
+// students to Construct Explanations or Engage in Argument from Evidence,
+// so those groups were removed rather than left showing patterns for
+// practices students were never actually asked to do.
 type PracticeGroup = { practice: string; patterns: PatternRow[] }
 
 const scienceInPracticePatterns: PracticeGroup[] = [
@@ -497,101 +501,6 @@ const scienceInPracticePatterns: PracticeGroup[] = [
             name: 'Sofia R.',
             artifact: 'Model with a "Spring (earlier than usual)" panel showing the fire flaring back up above ground.',
           },
-        ],
-      },
-    ],
-  },
-  {
-    practice: 'Construct Explanations',
-    patterns: [
-      {
-        id: 'practice-explanations-cer',
-        label: 'Explanation connects a claim about matter/energy flow to evidence from the model',
-        count: 13,
-        kind: 'practice',
-        students: [
-          {
-            name: 'Sofia R.',
-            response:
-              'Claim: the fire keeps burning underground all winter. Evidence: my model shows the fire still lit beneath the snow layer in the winter panel. Reasoning: the peat is insulated by the soil and snow, so it doesn’t need to be exposed to burn.',
-          },
-          {
-            name: 'Diego H.',
-            response: 'The fire can keep burning underground because the peat itself is the fuel, and it’s protected from the cold by the layers of soil and snow above it.',
-          },
-        ],
-      },
-      {
-        id: 'practice-explanations-specific-evidence',
-        label: 'Explanation cites a specific feature of the model (e.g., fire scar, permafrost thaw) as evidence',
-        count: 9,
-        kind: 'practice',
-        students: [
-          {
-            name: 'Maya T.',
-            response: 'I used the fire scar in my model as evidence that this same spot already burned once before, which is why it flares up again in spring.',
-          },
-          {
-            name: 'Aisha K.',
-            response: 'My model shows permafrost thawing right around the fire, and that thawed layer is what I think lets it keep spreading underground.',
-          },
-        ],
-      },
-      {
-        id: 'practice-explanations-claim-only',
-        label: 'Explanation states zombie fires are unusual without supporting reasoning',
-        count: 6,
-        kind: 'practice',
-        students: [
-          { name: 'Emma K.', response: 'Zombie fires are different because they don’t really go out.' },
-          { name: 'Carlos M.', response: 'These fires just keep coming back every year.' },
-        ],
-      },
-    ],
-  },
-  {
-    practice: 'Engage in Argument from Evidence',
-    patterns: [
-      {
-        id: 'practice-argument-defends-with-evidence',
-        label: 'Defends why the fire needs peat as fuel, using evidence from the model or reading',
-        count: 10,
-        kind: 'practice',
-        students: [
-          {
-            name: 'Ethan R.',
-            response: 'I told my partner the fire has to have something to burn underground, and the reading said peat is basically dried, compacted plant matter — that’s the fuel.',
-          },
-          {
-            name: 'Zoe F.',
-            response: 'My group argued that without the peat, there’d be nothing left to release the smoke and CO₂ we keep seeing in the images.',
-          },
-        ],
-      },
-      {
-        id: 'practice-argument-responds-to-counterexample',
-        label: 'Responds to a claim that spring fires are brand new fires, not the same one continuing',
-        count: 7,
-        kind: 'practice',
-        students: [
-          {
-            name: 'Liam O.',
-            response: 'When my partner said the spring fire was a new one, I pointed to the fire scar in the images being in the exact same spot as the previous fall.',
-          },
-          {
-            name: 'Marcus J.',
-            response: 'I explained that if it were a brand-new fire, there wouldn’t need to be a “zombie” fire at all — it’s the same fire that never fully went out.',
-          },
-        ],
-      },
-      {
-        id: 'practice-argument-appeals-to-agreement',
-        label: 'Agrees with a claim without evaluating the evidence',
-        count: 5,
-        kind: 'practice',
-        students: [
-          { name: 'Grace L.', response: 'I think our model is right because it looks like the picture from class.' },
-          { name: 'Noah T.', response: 'My partner said it was correct, so I went with it.' },
         ],
       },
     ],
@@ -750,36 +659,25 @@ const lessonSourceLabels: Record<LessonSource, string> = {
   uploaded: 'Teacher Uploaded',
 }
 
-// Manual edits aside, there are two independent tracks here, not one:
-//   1. The teacher-approved WORKING lesson (Generated + Suggestions) —
-//      driven entirely by editor.revisedLesson, which only ever changes in
-//      response to the teacher explicitly clicking Apply Change in the
-//      conversational chat. A section is highlighted there only once the
-//      teacher has actually accepted a change for it.
-//   2. The PREDEFINED comparison (Revised) — for any section that carries
-//      an AI suggestion, Revised always shows AI's own baseline revision of
-//      it (lessonRevisions/lessonRevisionSegments), fully incorporated,
-//      regardless of whether the teacher has touched that section's chat at
-//      all. It exists so "AI Suggestions" (what AI recommends) and
-//      "Revised" (what the lesson looks like if AI's recommendations are
-//      incorporated) are directly, one-to-one comparable — Revised is never
-//      gated behind Apply Change.
-// Manual edits (Edit Lesson) still win everywhere, on both tracks, since
-// that's the teacher's own final wording regardless of either AI track.
-//   - generated: the working lesson (track 1) — an applied/edited section is
-//     highlighted; an un-applied one reads as plain original text, and
-//     never flags a still-pending suggestion (that's Suggestions-only).
-//   - suggestions: the working lesson (track 1), PLUS pending AI
-//     suggestions are flagged and clickable here (Ask AI about this).
-//   - revised: the predefined comparison (track 2) — every suggested
-//     section shows AI's baseline revision, highlighted, from the moment
-//     the lesson is generated, independent of Apply Change.
-type LessonTab = 'generated' | 'suggestions' | 'revised'
+// There is one lesson, not several parallel versions — driven entirely by
+// editor.revisedLesson, which only ever changes in response to the teacher
+// explicitly clicking Apply Change in the conversational chat (or an Edit
+// Lesson manual edit, which always wins regardless of any AI track). A
+// section is highlighted only once the teacher has actually accepted a
+// change for it.
+//   - generated: an applied/edited section is highlighted; an un-applied
+//     one reads as plain original text, and never flags a still-pending
+//     suggestion (that's Suggestions-only).
+//   - suggestions: the same working lesson as generated, PLUS pending AI
+//     suggestions are flagged and clickable here (See AI Suggestions) —
+//     and this is the only tab Edit Lesson can be opened from, so a
+//     section's suggestion card can stay visible right next to its
+//     textarea while the teacher edits (see renderLessonStep).
+type LessonTab = 'generated' | 'suggestions'
 
 const lessonTabLabels: Record<LessonTab, string> = {
   generated: 'Generated',
   suggestions: 'AI Suggestions',
-  revised: 'Revised',
 }
 
 // Lesson Overview: Title, Grade Level, and Total Duration (the per-phase
@@ -805,7 +703,7 @@ const lessonPractices = [
 // each carrying its own `duration` in minutes, shown inline next to the
 // phase name instead of in a separate Pacing section), then Assessment.
 // Each entry is one of the "major editable sections" a teacher can edit
-// directly (Edit Lesson) or discuss with AI (Ask AI about this).
+// directly (Edit Lesson) or discuss with AI (See AI Suggestions).
 //
 // `sectionHeading` renders a group heading above a step (used once per
 // group, at the group's first entry). `leadIn` renders a plain, static,
@@ -1341,7 +1239,7 @@ function SelectionAskAIPopup({
   return (
     <div className="selection-ask-popup" style={{ top: popup.top, left: popup.left }}>
       <button type="button" className="ask-ai-chip" onClick={() => onAskAI(popup.text, popup.sectionKey)}>
-        Ask AI about this
+        See AI Suggestions
       </button>
     </div>
   )
@@ -1362,7 +1260,7 @@ type SectionRevisionState = {
   proposalSegments?: readonly LessonSegment[]
 }
 
-// Drives the whole "Ask AI about this / Apply Change" workflow for every
+// Drives the whole "See AI Suggestions / Apply Change" workflow for every
 // lesson section, in one place, regardless of whether a section's
 // suggestion came from a pre-flagged AI Suggestion or a manual text-
 // selection. There is exactly one lesson (no separate Original / AI
@@ -1398,7 +1296,7 @@ function useRevisionWorkflow() {
   }, [])
 
   // Opens (or restarts) a section's conversation and switches the left
-  // workspace to it — via a flagged AI suggestion ("Ask AI about this") or a
+  // workspace to it — via a flagged AI suggestion ("See AI Suggestions") or a
   // freeform text selection. `proposal` seeds the proposed-change card;
   // freeform selections have none, so they get a conversation with no
   // apply step until one exists.
@@ -1540,7 +1438,7 @@ function ChatThread({ messages, className }: { messages: readonly ChatMessage[];
 
 // Renders in the LEFT workspace (Form / AI Chat panel), not inline in the
 // lesson content — the right side stays the lesson plan itself. One panel
-// covers the whole "Ask AI about this → Apply Change" workflow for
+// covers the whole "See AI Suggestions → Apply Change" workflow for
 // whichever section is currently active.
 function RevisionChatPanel({
   label,
@@ -1626,7 +1524,7 @@ function App() {
   // Planning page after Generate Lesson, and on the standalone Lesson
   // Workspace page), and neither should reset the other's work. `planningTab`
   // is lifted too (rather than living inside LessonPlanningPanel) so that
-  // clicking "Ask AI about this" on the right can reliably switch whichever
+  // clicking "See AI Suggestions" on the right can reliably switch whichever
   // panel instance is currently mounted over to its AI Chat tab.
   const [planningTab, setPlanningTab] = useState<PlanningTab>('form')
   const [lessonTab, setLessonTab] = useState<LessonTab>('generated')
@@ -1722,10 +1620,30 @@ function App() {
             <span aria-hidden="true">☰</span>
           </button>
           <div className="brand-text">
-            <span className="brand-name">PARTNERS</span>
+            {/* PARTNERS splits into the same four letter-groups as the
+                subtitle highlights below (PAR/TN/ER/S), each carrying the
+                matching accent color — see the brand-color-* classes in
+                App.css, shared by both the title and the subtitle so the
+                two use the exact same color values. */}
+            <span className="brand-name">
+              <span className="brand-color-blue">PAR</span>
+              <span className="brand-color-green">TN</span>
+              <span className="brand-color-purple">ER</span>
+              <span className="brand-color-orange">S</span>
+            </span>
             <span className="brand-subtitle">
-              Promoting an Artificial Intelligence-Researcher-Teacher Network for Epistemic Practices in Science
-              Education
+              <span>
+                <span className="brand-subtitle-highlight brand-color-blue">P</span>romoting an{' '}
+                <span className="brand-subtitle-highlight brand-color-blue">A</span>rtificial Intelligence-
+                <span className="brand-subtitle-highlight brand-color-blue">R</span>esearcher-
+                <span className="brand-subtitle-highlight brand-color-green">T</span>eacher{' '}
+                <span className="brand-subtitle-highlight brand-color-green">N</span>etwork
+              </span>
+              <span>
+                to <span className="brand-subtitle-highlight brand-color-purple">E</span>nhance P
+                <span className="brand-subtitle-highlight brand-color-purple">r</span>actices in{' '}
+                <span className="brand-subtitle-highlight brand-color-orange">S</span>cience
+              </span>
             </span>
           </div>
         </div>
@@ -2194,7 +2112,7 @@ function LessonWorkspacePlaceholder({ isGenerating }: { isGenerating: boolean })
   )
 }
 
-// Lifted to App so "Ask AI about this" can switch whichever LessonPlanningPanel
+// Lifted to App so "See AI Suggestions" can switch whichever LessonPlanningPanel
 // instance is currently mounted (Lesson Planning vs. Lesson Workspace) over
 // to its AI Chat tab, scoped to the section the teacher just clicked.
 type PlanningPanelProps = {
@@ -2295,7 +2213,10 @@ function LessonWorkspaceCanvas({
     }
     setDraftBySection(drafts)
     setEditBaseline(drafts)
-    setOpenSuggestion(null)
+    // Deliberately NOT resetting openSuggestion here — if the teacher had a
+    // section's AI Suggestion popover open before clicking Edit Lesson, it
+    // should stay open next to that section's textarea (see
+    // renderLessonStep's isEditing branch) rather than disappearing.
     setIsEditing(true)
   }
 
@@ -2312,7 +2233,7 @@ function LessonWorkspaceCanvas({
     setIsEditing(false)
   }
 
-  // The single entry point for "Ask AI about this" — opens (or restarts) a
+  // The single entry point for "See AI Suggestions" — opens (or restarts) a
   // section's conversation and switches the left workspace over to it,
   // whether triggered from a flagged AI suggestion or a freeform text
   // selection. `lessonRevisions`/`lessonRevisionSegments` seed the initial
@@ -2346,73 +2267,22 @@ function LessonWorkspaceCanvas({
     const labelText = step.displayPrefix ?? `${step.label}:`
     const key = step.label
 
-    if (isEditing) {
-      return (
-        <div data-section-key={key}>
-          <p>
-            <strong>{labelText}</strong> <DurationBadge duration={step.duration} />
-          </p>
-          <textarea
-            rows={3}
-            value={draftBySection[key] ?? ''}
-            onChange={(event) => setDraftBySection((prev) => ({ ...prev, [key]: event.target.value }))}
-          />
-        </div>
-      )
-    }
-
-    // Generated, AI Suggestions, and Revised all render from this same
-    // point on — they're three views of the SAME current lesson (manual
-    // edits + whatever's been applied so far), including the yellow
-    // "AI revised" highlight/tag on an applied section, which shows up
-    // identically on all three. The only actual difference between them is
-    // that Suggestions alone surfaces pending, not-yet-applied AI
-    // suggestions as clickable highlights (see showSuggestionHighlight
-    // below); Generated and Revised never flag a pending suggestion, so an
-    // un-applied section just reads as plain original text there until the
-    // teacher actually applies something.
-
-    // A manual edit (from Edit Lesson / Save Edits) always takes
-    // priority for display — it's the teacher's own final wording,
-    // shown as plain text with no yellow highlight, which is
-    // reserved for AI suggestions and AI-applied changes.
-    const manualEdit = manualEdits[key]
-    if (manualEdit !== undefined) {
-      return (
-        <div data-section-key={key}>
-          <p>
-            {labelText} <DurationBadge duration={step.duration} /> {manualEdit}
-          </p>
-        </div>
-      )
-    }
-
     const revisionState = editor.statesByLabel[key]
-
-    // Revised is a predefined comparison view, not a log of what the
-    // teacher happened to click Apply Change on: for any section that
-    // carries an AI suggestion, it always shows AI's OWN baseline revision
-    // of it — the exact same recommendation described in AI Suggestions,
-    // already incorporated — regardless of the conversational chat state.
-    // Generated/Suggestions instead show the teacher-approved, conversational
-    // working lesson (editor.revisedLesson) — a deliberately separate track,
-    // since that represents what the TEACHER chose to accept, not what AI
-    // would do on its own.
-    const revisedBaselineSegments = lessonTab === 'revised' ? lessonRevisionSegments[key] : undefined
-    const isBaselineOnly = revisedBaselineSegments !== undefined
-    const appliedText = isBaselineOnly ? lessonRevisions[key] : editor.revisedLesson[key]
+    const appliedText = editor.revisedLesson[key]
     const isApplied = appliedText !== undefined
-    // On the working lesson (Generated/Suggestions), highlight only the
-    // part AI actually contributed, same as Revised does — never the
-    // section's original wording. Falls back to highlighting the whole
-    // applied text only when we genuinely can't tell which part is new
-    // (see apply() in useRevisionWorkflow).
-    const workingSegments = !isBaselineOnly ? editor.revisedLessonSegments[key] : undefined
-    const richSegments = revisedBaselineSegments ?? workingSegments
+    // Highlight only the part AI actually contributed, never the section's
+    // original wording. Falls back to highlighting the whole applied text
+    // only when we genuinely can't tell which part is new (see apply() in
+    // useRevisionWorkflow).
+    const richSegments = editor.revisedLessonSegments[key]
     const isFocused = editor.activeLabel === key
+    // The suggestion for this section, if it has one and hasn't been
+    // applied yet — drives the Suggestions-tab highlight/popover below,
+    // and also the persistent comparison card shown next to the textarea
+    // while editing (see the isEditing branch).
     const suggestion = !isApplied ? lessonSuggestions[key] : undefined
     // Only the Suggestions tab renders a pending suggestion as a clickable
-    // highlight — on Revised, an un-applied section just reads as plain
+    // highlight — on Generated, an un-applied section just reads as plain
     // original text until the teacher actually applies something.
     const showSuggestionHighlight = lessonTab === 'suggestions' && Boolean(suggestion)
     const isSuggestionOpen = lessonTab === 'suggestions' && openSuggestion === key
@@ -2441,11 +2311,9 @@ function LessonWorkspaceCanvas({
     }
 
     // Clicking an "AI revised" section: reopen the existing conversation if
-    // one exists, same as before. A section can now show as revised on the
-    // Revised tab's predefined baseline without the teacher ever having
-    // opened its chat, though — in that case there's no conversation to
-    // reopen yet, so start one instead (seeded the same way "Ask AI about
-    // this" would).
+    // one exists; there always is one by the time a section shows as
+    // applied, since Apply Change is what makes it applied in the first
+    // place — but this stays defensive in case that ever changes.
     const openAppliedSectionChat = () => {
       if (revisionState) {
         focusRevisionChat(key)
@@ -2453,6 +2321,68 @@ function LessonWorkspaceCanvas({
         const flaggedText = segmentsToText(step.segments.filter((segment) => segment.flagged))
         startRevisionChat(key, flaggedText || segmentsToText(step.segments), true)
       }
+    }
+
+    if (isEditing) {
+      // The suggestion that prompted this edit stays visible right next to
+      // the textarea — either because its popover was already open when
+      // Edit Lesson was clicked (isSuggestionOpen; startEditing no longer
+      // clears it, see below) or because the teacher has an ongoing "See
+      // AI Suggestions" conversation for this section — so they can compare
+      // the suggestion against what they're typing without switching views.
+      // A section with no suggestion open just shows its textarea,
+      // unchanged from before.
+      const showEditingSuggestion = Boolean(suggestion) && (isSuggestionOpen || Boolean(revisionState))
+      return (
+        <div data-section-key={key}>
+          <p>
+            <strong>{labelText}</strong> <DurationBadge duration={step.duration} />
+          </p>
+          <textarea
+            rows={3}
+            value={draftBySection[key] ?? ''}
+            onChange={(event) => setDraftBySection((prev) => ({ ...prev, [key]: event.target.value }))}
+          />
+          {showEditingSuggestion && (
+            <div className="suggestion-popover">
+              <p className="card-label">AI Suggestion</p>
+              <p>{suggestion}</p>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={revisionState ? () => focusRevisionChat(key) : askAboutSuggestion}
+              >
+                See AI Suggestions
+              </button>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    // Generated and AI Suggestions both render from this same point on —
+    // they're two views of the SAME current lesson (manual edits +
+    // whatever's been applied so far), including the yellow "AI revised"
+    // highlight/tag on an applied section, which shows up identically on
+    // both. The only actual difference is that Suggestions alone surfaces
+    // pending, not-yet-applied AI suggestions as clickable highlights (see
+    // showSuggestionHighlight above); Generated never flags a pending
+    // suggestion, so an un-applied section just reads as plain original
+    // text there until the teacher actually applies something.
+
+    // A manual edit (from Edit Lesson / Save Edits) always takes
+    // priority for display — it's the teacher's own final wording,
+    // shown as plain text with no yellow highlight, which is
+    // reserved for AI suggestions and AI-applied changes.
+    const manualEdit = manualEdits[key]
+    if (manualEdit !== undefined) {
+      return (
+        <div data-section-key={key}>
+          <p>
+            {labelText} <DurationBadge duration={step.duration} /> {manualEdit}
+          </p>
+        </div>
+      )
     }
 
     // Materials and Equipment & Technology render as a bullet list — one
@@ -2497,46 +2427,10 @@ function LessonWorkspaceCanvas({
               <p className="card-label">AI Suggestion</p>
               <p>{suggestion}</p>
               <button type="button" className="primary-button" onClick={askAboutSuggestion}>
-                Ask AI about this
+                See AI Suggestions
               </button>
             </div>
           )}
-        </div>
-      )
-    }
-
-    // Revised's predefined baseline for a bullet section keeps its item
-    // structure (rather than flattening to one paragraph, like a teacher's
-    // own conversational apply does) — one <li> per segment, with only the
-    // segment(s) AI actually added highlighted, so most of the list still
-    // reads as the teacher's normal content.
-    if (step.listStyle === 'bullet' && isBaselineOnly && revisedBaselineSegments) {
-      return (
-        <div data-section-key={key} className={sectionClassName}>
-          <p>{labelText}</p>
-          <div
-            role="button"
-            tabIndex={0}
-            className="lesson-highlight-trigger"
-            onClick={openAppliedSectionChat}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                openAppliedSectionChat()
-              }
-            }}
-          >
-            <ul className="lesson-bullet-list">
-              {revisedBaselineSegments.map((segment, segmentIndex) => (
-                <li key={segmentIndex}>
-                  <span className={segment.added ? 'ai-highlight' : undefined}>
-                    {segment.bold ? <strong>{segment.text}</strong> : segment.text}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <span className="ai-revised-tag">AI revised</span>
         </div>
       )
     }
@@ -2604,7 +2498,7 @@ function LessonWorkspaceCanvas({
             <p className="card-label">AI Suggestion</p>
             <p>{suggestion}</p>
             <button type="button" className="primary-button" onClick={askAboutSuggestion}>
-              Ask AI about this
+              See AI Suggestions
             </button>
           </div>
         )}
@@ -2625,7 +2519,7 @@ function LessonWorkspaceCanvas({
               type="button"
               className="secondary-button"
               disabled={lessonTab === 'generated'}
-              title={lessonTab === 'generated' ? 'Switch to AI Suggestions or Revised to edit the lesson' : undefined}
+              title={lessonTab === 'generated' ? 'Switch to AI Suggestions to edit the lesson' : undefined}
               onClick={() => (isEditing ? saveEditing() : startEditing())}
             >
               {isEditing ? 'Save Edits' : 'Edit Lesson'}
@@ -2784,8 +2678,8 @@ function PatternRowButton({
 // virus and mix with water) rather than the Zombie Fires phenomenon used
 // everywhere else in the prototype — see the teacher-facing pages for that
 // content. Same two-panel shape as the rest of the app — the student's own
-// model and explanation on the left, a persistent Interactive AI Feedback
-// conversation on the right — and the same shared building blocks
+// model and explanation on the left, a persistent AI Feedback conversation
+// on the right — and the same shared building blocks
 // (ChatThread, chips, composer-box, card styling) rather than a one-off
 // visual language.
 // ---------------------------------------------------------------------------
@@ -2830,21 +2724,66 @@ const mechanisticModelPrompt =
 const initialStudentExplanation =
   "In my model I drew the soap's hydrophobic tail sticking into the virus's fatty envelope, since both of those are supposed to be attracted to fat. I think that's part of how soap breaks the virus apart, but I'm not totally sure yet how the hydrophilic end helps rinse it away with water — I want to add that to my mechanistic model."
 
-// The example exchange from the design spec — seeded so the page always
-// opens mid-conversation, exactly like a student returning to feedback
-// they've already started, grounded in the Descriptive Model (the default
-// tab) since that's what the seeded explanation above is describing.
-const initialAiFeedback: ChatMessage[] = [
+// Each model tab gets its own AI feedback conversation, not one shared
+// chatbot (see section 1/2/3 of the spec) — so the two are seeded
+// separately here, and StudentFeedbackPage keeps them in separate state
+// keyed by ModelTab. Both are seeded so the page always opens mid-
+// conversation, exactly like a student returning to feedback they've
+// already started.
+//
+// Descriptive: short, and stays focused on helping the student notice and
+// describe structures/components that are already in their DRAWING — what's
+// labeled, where things are positioned, and whether the relationships
+// between structures are actually visible on the page — never jumping ahead
+// to mechanism/why, and never just explaining the answer itself.
+const initialDescriptiveFeedback: ChatMessage[] = [
   {
     role: 'ai',
-    text: 'You labeled the fatty envelope of the coronavirus and the hydrophobic part of the soap molecule. What do you think might happen when those two structures come into contact?',
+    text: 'I see that you labeled the coronavirus’s fatty envelope and the two parts of the soap molecule. Where could you add water to your drawing so the relationship between the hydrophilic part and water is easier to see?',
   },
-  { role: 'teacher', text: 'Maybe the soap sticks to the fatty part?' },
+  { role: 'teacher', text: 'I could draw water molecules around the soap.' },
   {
     role: 'ai',
-    text: 'That connection could be useful to show in your model. How could you revise your drawing to represent what you think the soap is doing?',
+    text: 'That could make the relationship clearer. Which part of the soap molecule should point toward the water in your drawing?',
   },
 ]
+
+// Mechanistic: explicitly builds on the Descriptive Model (spec section 5)
+// — the opening line names two specific structure/attraction relationships
+// the student already drew there, and asks how to use BOTH together in the
+// mechanistic drawing — then pushes toward interactions, cause-and-effect,
+// and change over time using arrows/labels, the same visual vocabulary as
+// the Descriptive conversation, never a plain textbook explanation of why
+// soap works.
+const initialMechanisticFeedback: ChatMessage[] = [
+  {
+    role: 'ai',
+    text: 'In your descriptive model, you showed that the hydrophobic part of soap is attracted to fat and the hydrophilic part is attracted to water. How could you use both of those relationships to strengthen what you are showing in your mechanistic model?',
+  },
+  {
+    role: 'teacher',
+    text: "I could draw arrows showing the hydrophobic part pointing into the virus's fatty envelope and the hydrophilic part pointing out toward the water.",
+  },
+  {
+    role: 'ai',
+    text: 'That’s a strong way to connect both relationships in one drawing. You’ve drawn the hydrophobic part next to the virus’s fatty envelope — what could you add to show what happens to the envelope when many soap molecules interact with it, not just one?',
+  },
+  { role: 'teacher', text: 'I could show the fatty layer breaking apart.' },
+  {
+    role: 'ai',
+    text: 'How could you use arrows, labels, or changes in the drawing to show that process over time?',
+  },
+]
+
+const initialFeedbackByTab: Record<ModelTab, ChatMessage[]> = {
+  descriptive: initialDescriptiveFeedback,
+  mechanistic: initialMechanisticFeedback,
+}
+
+// Shown as a small contextual label above the Mechanistic Model AI
+// conversation (spec section 4) — makes the connection to the Descriptive
+// Model explicit to the student, not just implicit in the AI's wording.
+const mechanisticProgressionNote = 'Building on your Descriptive Model'
 
 // Rotates through generic Socratic follow-ups when nothing in the student's
 // message keyword-matches something more specific below — the point is the
@@ -2855,24 +2794,29 @@ const initialAiFeedback: ChatMessage[] = [
 const genericDescriptiveFollowUps = [
   'Which structure in your model would that be part of — is it something you could add a label for?',
   'Is that a structure you’ve already drawn, or a new part you’d want to add to your model?',
-  'What made you think that structure works that way — something from class, the reading, or your own reasoning?',
+  'Where is that positioned in your drawing, and is its relationship to the nearby structures easy to see?',
   'How does that structure compare between the virus and the soap molecule in your model?',
 ]
 
 const genericMechanisticFollowUps = [
   'Where in your model would that interaction show up — is it something you could add an arrow for?',
-  'How does that connect to the driving question: how does soap help wash away the virus in water?',
-  'Is that something your model already shows happening, or a new idea you’d want to add?',
-  'What made you think that interaction happens — something from the reading, or your own reasoning?',
+  'How could you use arrows or labels to show that happening over time, rather than all at once?',
+  'Is that something your model already shows happening, or a new relationship you’d want to add?',
+  'Which structures are involved in that, and how would you position them relative to each other to show it?',
 ]
 
 // Stands in for a real AI call. Always responds with a scaffolding question
 // grounded in whatever the student just said, never the scientific answer
 // itself — matches the rest of this prototype's "mock reply" convention
-// (see mockDeeperAnalysisReply / mockRevisionFollowUpReply). Sensitive to
-// which model tab the student is currently on (see section 7 of the spec):
-// Descriptive replies stay focused on structures/components/labels,
-// Mechanistic replies stay focused on interactions/mechanism.
+// (see mockDeeperAnalysisReply / mockRevisionFollowUpReply). Every reply
+// stays anchored to the DRAWING itself — labels, arrows, structures, and
+// the positioning/relationships between them, and what is or isn't yet
+// represented visually — rather than explaining the underlying science, so
+// this never reads as a general science tutor giving the answer away.
+// Sensitive to which model tab the student is currently on (see section 7
+// of the spec): Descriptive replies stay focused on identifying and
+// labeling structures/positioning, Mechanistic replies stay focused on
+// interactions, cause-and-effect, and change shown through arrows.
 function mockStudentFeedbackReply(message: string, followUpCount: number, modelTab: ModelTab): string {
   const lower = message.toLowerCase()
 
@@ -2884,22 +2828,22 @@ function mockStudentFeedbackReply(message: string, followUpCount: number, modelT
       return 'You’re describing the fatty envelope. What part of the soap molecule do you think would interact with it — and did you label that part?'
     }
     if (lower.includes('genetic') || lower.includes('rna') || lower.includes('dna')) {
-      return 'You’re thinking about the genetic material. Where is it positioned in your model, and what do you think protects it?'
+      return 'You’re thinking about the genetic material. Where is it positioned in your model, and did you draw or label anything around it to show what protects it?'
     }
     if (lower.includes('hydrophilic') || lower.includes('water')) {
       return 'You’re describing the hydrophilic portion. Which end of the soap molecule is that, and how did you show it in your diagram?'
     }
     if (lower.includes('hydrophobic') || lower.includes('fat')) {
-      return 'You’re describing the hydrophobic portion. What does that part of the soap molecule get attracted to, based on your model?'
+      return 'You’re describing the hydrophobic portion. Which direction does that part point in your drawing, and is that relationship labeled?'
     }
     return genericDescriptiveFollowUps[followUpCount % genericDescriptiveFollowUps.length]
   }
 
   if (lower.includes('stick') || lower.includes('attach') || lower.includes('grab')) {
-    return 'That connection could be useful to show in your model. How could you revise your drawing to represent what you think the soap is doing?'
+    return 'That connection could be useful to show in your model. What arrow or label could you add to represent what you think the soap is doing?'
   }
   if (lower.includes('break') || lower.includes('dissolve') || lower.includes('disrupt') || lower.includes('apart')) {
-    return 'You’re describing something happening to the virus’s structure. What part of your model shows the fatty envelope actually being disrupted?'
+    return 'You’re describing something happening to the virus’s structure. What part of your model shows the fatty envelope actually being disrupted, and how would you show that change?'
   }
   if (lower.includes('surround') || lower.includes('cluster') || lower.includes('group') || lower.includes('ball')) {
     return 'That’s an interesting way to represent it. What’s on the outside of that cluster in your model, and what’s on the inside?'
@@ -2908,7 +2852,7 @@ function mockStudentFeedbackReply(message: string, followUpCount: number, modelT
     return 'You’re describing how oil and water interact with soap. Which part of the soap molecule is facing the oil, and which part is facing the water in your drawing?'
   }
   if (lower.includes('rinse') || lower.includes('wash') || lower.includes('remove') || lower.includes('away')) {
-    return 'You’re describing the virus being carried away. What does your model show happening right before that point?'
+    return 'You’re describing the virus being carried away. What could you add — an arrow, or a change in the drawing — to show what happens right before that point?'
   }
   return genericMechanisticFollowUps[followUpCount % genericMechanisticFollowUps.length]
 }
@@ -2966,17 +2910,27 @@ function StudentFeedbackPage() {
   const [isExplanationListening, setIsExplanationListening] = useState(false)
   const explanationListenTimeoutRef = useRef<number | null>(null)
 
-  const [feedbackMessages, setFeedbackMessages] = useState<ChatMessage[]>(initialAiFeedback)
+  // Descriptive and Mechanistic each keep their own conversation — switching
+  // tabs must never lose or mix either one (same rule as the artifact state
+  // above), so both live keyed by tab in one piece of state.
+  const [feedbackMessagesByTab, setFeedbackMessagesByTab] = useState<Record<ModelTab, ChatMessage[]>>(initialFeedbackByTab)
+  const feedbackMessages = feedbackMessagesByTab[modelTab]
   const [feedbackDraft, setFeedbackDraft] = useState('')
   const [isComposerListening, setIsComposerListening] = useState(false)
   const composerListenTimeoutRef = useRef<number | null>(null)
   const [isAiThinking, setIsAiThinking] = useState(false)
   const aiThinkingTimeoutRef = useRef<number | null>(null)
-  const followUpCountRef = useRef(0)
+  const followUpCountRef = useRef<Record<ModelTab, number>>({ descriptive: 0, mechanistic: 0 })
   const chatScrollRef = useRef<HTMLDivElement | null>(null)
 
   const [isRevisionFlash, setIsRevisionFlash] = useState(false)
   const revisionFlashTimeoutRef = useRef<number | null>(null)
+  // Tracks the two-button workflow (spec section 1): "Start Iterating" is
+  // repeatable and never changes this; "Submit Final Revision" is the one
+  // terminal action — once clicked, the button row is replaced with a
+  // plain confirmation note, same convention as RevisionChatPanel's
+  // "✓ Applied to Lesson" (see .inline-ai-applied-note).
+  const [isFinalSubmitted, setIsFinalSubmitted] = useState(false)
 
   // The chat area is a fixed-height, internally scrolling pane (see
   // .deeper-analysis-chat, reused here) — keep it pinned to the latest
@@ -3032,27 +2986,39 @@ function StudentFeedbackPage() {
   const sendFeedbackMessage = () => {
     const text = feedbackDraft.trim()
     if (!text || isAiThinking) return
-    setFeedbackMessages((prev) => [...prev, { role: 'teacher', text }])
+    const tab = modelTab
+    setFeedbackMessagesByTab((prev) => ({ ...prev, [tab]: [...prev[tab], { role: 'teacher', text }] }))
     setFeedbackDraft('')
     setIsAiThinking(true)
-    const count = followUpCountRef.current
-    followUpCountRef.current += 1
-    const tab = modelTab
+    const count = followUpCountRef.current[tab]
+    followUpCountRef.current = { ...followUpCountRef.current, [tab]: count + 1 }
     aiThinkingTimeoutRef.current = window.setTimeout(() => {
-      setFeedbackMessages((prev) => [...prev, { role: 'ai', text: mockStudentFeedbackReply(text, count, tab) }])
+      setFeedbackMessagesByTab((prev) => ({
+        ...prev,
+        [tab]: [...prev[tab], { role: 'ai', text: mockStudentFeedbackReply(text, count, tab) }],
+      }))
       setIsAiThinking(false)
     }, 700)
   }
 
-  // "Revise My Response" never touches the student's text itself — it just
+  // "Start Iterating" never touches the student's text itself — it just
   // brings the editable explanation back into focus, so the student decides
-  // what (if anything) to change based on the feedback they just read.
-  const handleReviseClick = () => {
+  // what (if anything) to revise based on the AI feedback they've read. It
+  // stays available and repeatable throughout the formative loop (create →
+  // Start Iterating → get feedback → revise → repeat).
+  const handleStartIterating = () => {
     explanationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     explanationRef.current?.focus()
     setIsRevisionFlash(true)
     if (revisionFlashTimeoutRef.current !== null) window.clearTimeout(revisionFlashTimeoutRef.current)
     revisionFlashTimeoutRef.current = window.setTimeout(() => setIsRevisionFlash(false), 1200)
+  }
+
+  // "Submit Final Revision" is the one terminal action in this workflow —
+  // it marks the formative loop as done and swaps the button row for a
+  // plain confirmation note (see isFinalSubmitted above).
+  const handleSubmitFinalRevision = () => {
+    setIsFinalSubmitted(true)
   }
 
   return (
@@ -3161,23 +3127,46 @@ function StudentFeedbackPage() {
           {isExplanationListening && <p className="mic-listening-note">🎤 Listening…</p>}
         </div>
 
-        <button type="button" className="primary-button revise-button" onClick={handleReviseClick}>
-          Revise My Response
-        </button>
+        {isFinalSubmitted ? (
+          <p className="inline-ai-applied-note">✓ Final revision submitted</p>
+        ) : (
+          <div className="model-representation-actions">
+            <button type="button" className="primary-button" onClick={handleStartIterating}>
+              Start Iterating
+            </button>
+            <button type="button" className="secondary-button" onClick={handleSubmitFinalRevision}>
+              Submit Final Revision
+            </button>
+          </div>
+        )}
       </section>
 
-      <section className="student-ai-panel">
-        <div className="panel-header compact">
-          <h3>Interactive AI Feedback</h3>
+      {/* `ai-panel-${modelTab}` carries the subtle per-state tint (see
+          .ai-panel-descriptive / .ai-panel-mechanistic in App.css) — the
+          badge, progression note, and contextual text below all key off the
+          same `modelTab` so the whole header changes together with the
+          conversation and the model/work on the left. */}
+      <section className={`student-ai-panel ai-panel-${modelTab}`}>
+        <div className="panel-header compact ai-panel-header">
+          <h3>AI Feedback</h3>
+          <span className="badge ai-panel-badge">{modelTab === 'descriptive' ? 'Descriptive Model' : 'Mechanistic Model'}</span>
         </div>
+        {modelTab === 'mechanistic' && (
+          <p className="ai-panel-progression-note">🔗 {mechanisticProgressionNote}</p>
+        )}
         <p className="empty-state-support deeper-analysis-subtitle">
-          Your AI feedback partner asks questions about your model and explanation — it won’t just give you the
-          answer.
+          {modelTab === 'mechanistic'
+            ? 'Use the structures you identified to explain how the interaction happens.'
+            : 'Explore the structures and features shown in your model.'}
         </p>
 
         <div className="deeper-analysis-body">
           <div className="deeper-analysis-chat" ref={chatScrollRef}>
-            <ChatThread messages={feedbackMessages} />
+            {/* `ai-panel-chat-${modelTab}` recolors only the AI bubbles (see
+                .ai-panel-chat-descriptive/.ai-panel-chat-mechanistic in
+                App.css) — student bubbles stay the shared neutral gray from
+                .teacher-message everywhere, unaffected by model tab. */}
+            <ChatThread messages={feedbackMessages} className={`ai-panel-chat-${modelTab}`} />
             {isAiThinking && <p className="empty-state-support">AI is thinking…</p>}
           </div>
 
@@ -3369,7 +3358,7 @@ function FeedbackDashboardPage() {
           </div>
 
           <div className="summary-section summary-section-misconception">
-            <p className="summary-section-title">Misconceptions</p>
+            <p className="summary-section-title">Areas for Improvement</p>
             <div className="pattern-row-list">
               {misconceptionPatterns.map((row) => (
                 <PatternRowButton
