@@ -669,10 +669,9 @@ const lessonSourceLabels: Record<LessonSource, string> = {
 //     one reads as plain original text, and never flags a still-pending
 //     suggestion (that's Suggestions-only).
 //   - suggestions: the same working lesson as generated, PLUS pending AI
-//     suggestions are flagged and clickable here (See AI Suggestions) —
-//     and this is the only tab Edit Lesson can be opened from, so a
-//     section's suggestion card can stay visible right next to its
-//     textarea while the teacher edits (see renderLessonStep).
+//     suggestions are flagged and clickable here (See AI Suggestions).
+// Edit Lesson works from either tab — the tab only changes what's
+// highlighted, never whether the lesson can be edited.
 type LessonTab = 'generated' | 'suggestions'
 
 const lessonTabLabels: Record<LessonTab, string> = {
@@ -1269,7 +1268,10 @@ type SectionRevisionState = {
 // Apply Change. As soon as the AI has a concrete proposal it's shown in
 // full in the proposed-change card — there's no separate "preview" step to
 // trigger first; Apply Change is available immediately.
-function useRevisionWorkflow() {
+// `onApply` lets the lesson's manual-edit state (lifted to App) react to an
+// Apply Change, so an applied AI revision becomes the section's ordinary
+// current text — see its definition in App.
+function useRevisionWorkflow(onApply?: (label: string, text: string) => void) {
   const [activeLabel, setActiveLabel] = useState<string | null>(null)
   const [statesByLabel, setStatesByLabel] = useState<Record<string, SectionRevisionState>>({})
   const [revisedLesson, setRevisedLesson] = useState<Record<string, string>>({})
@@ -1357,6 +1359,8 @@ function useRevisionWorkflow() {
     })
 
     setStatesByLabel((prev) => (prev[label] ? { ...prev, [label]: { ...prev[label], stage: 'applied' } } : prev))
+
+    onApply?.(label, state.proposal)
 
     setJustAppliedLabel(label)
     if (justAppliedTimeoutRef.current !== null) window.clearTimeout(justAppliedTimeoutRef.current)
@@ -1529,11 +1533,27 @@ function App() {
   const [planningTab, setPlanningTab] = useState<PlanningTab>('form')
   const [lessonTab, setLessonTab] = useState<LessonTab>('generated')
   const [openSuggestion, setOpenSuggestion] = useState<string | null>(null)
-  const revisionEditor = useRevisionWorkflow()
   const [isEditingLesson, setIsEditingLesson] = useState(false)
   const [manualEdits, setManualEdits] = useState<Record<string, string>>({})
   const [draftBySection, setDraftBySection] = useState<Record<string, string>>({})
   const [editBaseline, setEditBaseline] = useState<Record<string, string>>({})
+  // An applied AI revision is the section's newest wording, so it replaces
+  // any earlier manual edit (which would otherwise keep winning for display
+  // and make Edit Lesson reopen the pre-AI text) and flows straight into the
+  // edit drafts — including mid-edit, when the teacher applied from the chat
+  // while Edit Lesson was open. The baseline moves with it so saving without
+  // further changes doesn't record the AI text as a manual edit. From here
+  // on it's ordinary lesson content the teacher can edit like any other.
+  const revisionEditor = useRevisionWorkflow((label, text) => {
+    setManualEdits((prev) => {
+      if (!(label in prev)) return prev
+      const next = { ...prev }
+      delete next[label]
+      return next
+    })
+    setDraftBySection((prev) => ({ ...prev, [label]: text }))
+    setEditBaseline((prev) => ({ ...prev, [label]: text }))
+  })
 
   // Generate Lesson no longer navigates away from the Lesson Planning page —
   // it reveals the generated lesson in the workspace panel on the right,
@@ -2331,8 +2351,12 @@ function LessonWorkspaceCanvas({
       // AI Suggestions" conversation for this section — so they can compare
       // the suggestion against what they're typing without switching views.
       // A section with no suggestion open just shows its textarea,
-      // unchanged from before.
-      const showEditingSuggestion = Boolean(suggestion) && (isSuggestionOpen || Boolean(revisionState))
+      // unchanged from before. An already-applied section keeps its card
+      // too (reading lessonSuggestions directly, since `suggestion` above is
+      // cleared once applied) — AI-revised text is edited exactly like any
+      // other text, with its AI conversation still one click away.
+      const editingSuggestion = lessonSuggestions[key]
+      const showEditingSuggestion = (Boolean(editingSuggestion) && isSuggestionOpen) || Boolean(revisionState)
       return (
         <div data-section-key={key}>
           <p>
@@ -2346,7 +2370,7 @@ function LessonWorkspaceCanvas({
           {showEditingSuggestion && (
             <div className="suggestion-popover">
               <p className="card-label">AI Suggestion</p>
-              <p>{suggestion}</p>
+              {editingSuggestion && <p>{editingSuggestion}</p>}
               <button
                 type="button"
                 className="secondary-button"
@@ -2373,13 +2397,21 @@ function LessonWorkspaceCanvas({
     // A manual edit (from Edit Lesson / Save Edits) always takes
     // priority for display — it's the teacher's own final wording,
     // shown as plain text with no yellow highlight, which is
-    // reserved for AI suggestions and AI-applied changes.
+    // reserved for AI suggestions and AI-applied changes. If AI had
+    // revised the section before the teacher edited it, the "AI revised"
+    // tag stays as a record of that — informational only.
     const manualEdit = manualEdits[key]
     if (manualEdit !== undefined) {
       return (
-        <div data-section-key={key}>
+        <div data-section-key={key} className={sectionClassName}>
           <p>
             {labelText} <DurationBadge duration={step.duration} /> {manualEdit}
+            {isApplied && (
+              <>
+                {' '}
+                <span className="ai-revised-tag">AI revised</span>
+              </>
+            )}
           </p>
         </div>
       )
@@ -2518,8 +2550,6 @@ function LessonWorkspaceCanvas({
             <button
               type="button"
               className="secondary-button"
-              disabled={lessonTab === 'generated'}
-              title={lessonTab === 'generated' ? 'Switch to AI Suggestions to edit the lesson' : undefined}
               onClick={() => (isEditing ? saveEditing() : startEditing())}
             >
               {isEditing ? 'Save Edits' : 'Edit Lesson'}
