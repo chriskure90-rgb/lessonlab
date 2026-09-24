@@ -3,13 +3,13 @@ import './App.css'
 
 type PageId =
   | 'lesson-generator'
-  | 'lesson-workspace'
   | 'student-feedback'
   | 'class-feedback-dashboard'
 
+// The lesson workspace (generated lesson, AI suggestions, revisions, Edit
+// Lesson) lives inside Lesson Planning — there's no separate nav page for it.
 const PAGE_CONFIG = [
   { id: 'lesson-generator', label: 'Lesson Planning' },
-  { id: 'lesson-workspace', label: 'Lesson Workspace' },
   { id: 'class-feedback-dashboard', label: 'Class Feedback' },
   { id: 'student-feedback', label: 'Student Feedback' },
 ] as const
@@ -1314,7 +1314,10 @@ function useRevisionWorkflow(onApply?: (label: string, text: string) => void) {
 
   const reopen = (label: string) => setActiveLabel(label)
 
-  const apply = (label: string) => {
+  // `editedText` is the teacher's own edit of the proposed change (via the
+  // card's Edit button), when they made one — whatever they applied becomes
+  // the section's text, and the conversation's proposal from then on.
+  const apply = (label: string, editedText?: string) => {
     // Reads the current section's state from the hook's own closure rather
     // than a setState updater's `prev` — deliberately. Nesting one setState
     // call inside another updater looks convenient, but under React 18
@@ -1325,12 +1328,20 @@ function useRevisionWorkflow(onApply?: (label: string, text: string) => void) {
     // itself). Reading `state` here and issuing every setState call
     // independently — each a pure function of its own prior value — avoids
     // that entirely.
-    const state = statesByLabel[label]
-    if (!state) return
+    const current = statesByLabel[label]
+    if (!current) return
+    // A teacher-edited proposal no longer matches the canned segment
+    // boundaries or the follow-up "previous text + suffix" shape, so it
+    // drops its segments and takes the whole-section highlight fallback.
+    const teacherEdited = editedText !== undefined && editedText !== current.proposal
+    const state: SectionRevisionState = teacherEdited
+      ? { ...current, proposal: editedText, proposalSegments: undefined }
+      : current
 
     setRevisedLesson((revised) => ({ ...revised, [label]: state.proposal }))
 
     setRevisedLessonSegments((prevSegments) => {
+      if (teacherEdited) return { ...prevSegments, [label]: undefined }
       if (state.proposalSegments) {
         // Applying the canned first proposal — its added/plain segment
         // boundaries are already exact (see lessonRevisionSegments), so
@@ -1358,7 +1369,19 @@ function useRevisionWorkflow(onApply?: (label: string, text: string) => void) {
       return { ...prevSegments, [label]: undefined }
     })
 
-    setStatesByLabel((prev) => (prev[label] ? { ...prev, [label]: { ...prev[label], stage: 'applied' } } : prev))
+    setStatesByLabel((prev) =>
+      prev[label]
+        ? {
+            ...prev,
+            [label]: {
+              ...prev[label],
+              stage: 'applied',
+              proposal: state.proposal,
+              proposalSegments: state.proposalSegments,
+            },
+          }
+        : prev,
+    )
 
     onApply?.(label, state.proposal)
 
@@ -1460,10 +1483,20 @@ function RevisionChatPanel({
   draft: string
   onDraftChange: (value: string) => void
   onSend: () => void
-  onApply: () => void
+  onApply: (editedText?: string) => void
   onClose: () => void
 }) {
   const hasProposal = Boolean(state.proposal)
+  // The teacher's working copy of the proposal while its Edit mode is open
+  // (null = showing the AI's proposal as-is). Dropped whenever the section
+  // or the proposal itself changes, so a stale edit never gets applied to
+  // a different proposal.
+  const [proposalDraft, setProposalDraft] = useState<string | null>(null)
+  const isEditingProposal = proposalDraft !== null
+
+  useEffect(() => {
+    setProposalDraft(null)
+  }, [label, state.proposal])
 
   return (
     <div className="revision-chat-panel">
@@ -1483,15 +1516,46 @@ function RevisionChatPanel({
       {/* The card itself IS the preview — the full proposed content is
           shown here the moment the AI has one, with no separate "Preview
           Change" step. The teacher can keep chatting to refine it (a
-          follow-up replaces this card's content) or click Apply Change
-          whenever they're satisfied. */}
+          follow-up replaces this card's content), click Edit to reword
+          the draft themselves, or click Apply to Lesson whenever they're
+          satisfied — which applies whatever the card currently says,
+          including the teacher's own edits. */}
       {state.stage === 'chatting' && hasProposal && (
         <div className="inline-ai-preview">
           <p className="card-label">Proposed change — not yet applied</p>
-          <p>{state.proposalSegments ? <LessonRichText segments={state.proposalSegments} /> : state.proposal}</p>
+          {isEditingProposal ? (
+            <textarea
+              aria-label="Edit proposed change"
+              rows={4}
+              value={proposalDraft}
+              onChange={(event) => setProposalDraft(event.target.value)}
+              autoFocus
+            />
+          ) : (
+            <p>{state.proposalSegments ? <LessonRichText segments={state.proposalSegments} /> : state.proposal}</p>
+          )}
           <div className="revision-actions">
-            <button type="button" className="accept-button" onClick={onApply} disabled={isThinking}>
-              Apply Change
+            {isEditingProposal ? (
+              <button type="button" className="proposal-edit-button" onClick={() => setProposalDraft(null)}>
+                Cancel
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="proposal-edit-button"
+                onClick={() => setProposalDraft(state.proposal)}
+                disabled={isThinking}
+              >
+                Edit
+              </button>
+            )}
+            <button
+              type="button"
+              className="accept-button"
+              onClick={() => onApply(proposalDraft ?? undefined)}
+              disabled={isThinking || (isEditingProposal && !proposalDraft.trim())}
+            >
+              Apply to Lesson
             </button>
           </div>
         </div>
@@ -1499,18 +1563,26 @@ function RevisionChatPanel({
 
       {state.stage === 'applied' && <p className="inline-ai-applied-note">✓ Applied to Lesson</p>}
 
+      {/* Sending pauses while the proposal is being edited — a follow-up
+          reply would replace the proposal and discard the teacher's edit.
+          The conversation itself stays visible above. */}
       <div className="composer-box">
         <input
           type="text"
-          placeholder="Ask about this section..."
+          placeholder={isEditingProposal ? 'Apply or cancel your edit to keep chatting...' : 'Ask about this section...'}
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') onSend()
+            if (event.key === 'Enter' && !isEditingProposal) onSend()
           }}
-          disabled={isThinking}
+          disabled={isThinking || isEditingProposal}
         />
-        <button type="button" className="primary-button" onClick={onSend} disabled={isThinking || !draft.trim()}>
+        <button
+          type="button"
+          className="primary-button"
+          onClick={onSend}
+          disabled={isThinking || isEditingProposal || !draft.trim()}
+        >
           Send
         </button>
       </div>
@@ -1523,13 +1595,11 @@ function App() {
   const [navOpen, setNavOpen] = useState(false)
 
   // Lifted out of the lesson workspace canvas so accepted revisions,
-  // conversation history, and manual edits survive navigating away and back
-  // — the canvas now mounts in two different places (embedded on the Lesson
-  // Planning page after Generate Lesson, and on the standalone Lesson
-  // Workspace page), and neither should reset the other's work. `planningTab`
+  // conversation history, and manual edits survive navigating to another
+  // page (Class/Student Feedback) and back to Lesson Planning. `planningTab`
   // is lifted too (rather than living inside LessonPlanningPanel) so that
-  // clicking "See AI Suggestions" on the right can reliably switch whichever
-  // panel instance is currently mounted over to its AI Chat tab.
+  // clicking "See AI Suggestions" on the right can reliably switch the
+  // left panel over to its AI Chat tab.
   const [planningTab, setPlanningTab] = useState<PlanningTab>('form')
   const [lessonTab, setLessonTab] = useState<LessonTab>('generated')
   const [openSuggestion, setOpenSuggestion] = useState<string | null>(null)
@@ -1558,11 +1628,8 @@ function App() {
   // Generate Lesson no longer navigates away from the Lesson Planning page —
   // it reveals the generated lesson in the workspace panel on the right,
   // in place, so the form and any AI Chat conversation on the left stay
-  // exactly as the teacher left them. This state is lifted to App (rather
-  // than living on either page) so it stays in sync between the embedded
-  // canvas on Lesson Planning and the standalone Lesson Workspace page —
-  // landing on Lesson Workspace directly must never show generated content
-  // that Generate Lesson hasn't actually produced yet.
+  // exactly as the teacher left them. This state is lifted to App so a
+  // generated lesson survives navigating to another page and back.
   const [lessonGenerated, setLessonGenerated] = useState(false)
   const [isGeneratingLesson, setIsGeneratingLesson] = useState(false)
   const generateLessonTimeoutRef = useRef<number | null>(null)
@@ -1603,7 +1670,11 @@ function App() {
 
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
-    if (hash && PAGE_CONFIG.some((page) => page.id === hash)) {
+    // Old links to the retired standalone Lesson Workspace page land on
+    // Lesson Planning, where that workspace now lives.
+    if (hash === 'lesson-workspace') {
+      setActivePage('lesson-generator')
+    } else if (hash && PAGE_CONFIG.some((page) => page.id === hash)) {
       setActivePage(hash as PageId)
     }
   }, [])
@@ -1640,17 +1711,10 @@ function App() {
             <span aria-hidden="true">☰</span>
           </button>
           <div className="brand-text">
-            {/* PARTNERS splits into the same four letter-groups as the
-                subtitle highlights below (PAR/TN/ER/S), each carrying the
-                matching accent color — see the brand-color-* classes in
-                App.css, shared by both the title and the subtitle so the
-                two use the exact same color values. */}
-            <span className="brand-name">
-              <span className="brand-color-blue">PAR</span>
-              <span className="brand-color-green">TN</span>
-              <span className="brand-color-purple">ER</span>
-              <span className="brand-color-orange">S</span>
-            </span>
+            {/* The PARTNERS wordmark is a single dark blue (see .brand-name
+                in App.css); the subtitle below keeps its per-letter-group
+                accent colors (brand-color-* classes). */}
+            <span className="brand-name">PARTNERS</span>
             <span className="brand-subtitle">
               <span>
                 <span className="brand-subtitle-highlight brand-color-blue">P</span>romoting an{' '}
@@ -1677,15 +1741,6 @@ function App() {
 
         {activePage === 'lesson-generator' && (
           <LessonPlanningPage
-            onGenerateLessonPlan={handleGenerateLessonPlan}
-            lessonGenerated={lessonGenerated}
-            isGeneratingLesson={isGeneratingLesson}
-            canvasProps={canvasProps}
-            planningPanelProps={planningPanelProps}
-          />
-        )}
-        {activePage === 'lesson-workspace' && (
-          <LessonWorkspacePage
             onGenerateLessonPlan={handleGenerateLessonPlan}
             lessonGenerated={lessonGenerated}
             isGeneratingLesson={isGeneratingLesson}
@@ -2055,7 +2110,9 @@ function LessonPlanningPanel({
                 revisionEditor.sendFollowUp(label, revisionDraft.trim())
                 setRevisionDraft('')
               }}
-              onApply={() => revisionEditor.activeLabel && revisionEditor.apply(revisionEditor.activeLabel)}
+              onApply={(editedText) =>
+                revisionEditor.activeLabel && revisionEditor.apply(revisionEditor.activeLabel, editedText)
+              }
               onClose={() => revisionEditor.closeChat()}
             />
           ) : (
@@ -2096,10 +2153,9 @@ function LessonPlanningPanel({
   )
 }
 
-// Shown in place of the generated lesson on both the embedded (Lesson
-// Planning) and standalone (Lesson Workspace) canvas slots whenever
-// Generate Lesson hasn't actually been clicked yet — landing on either page
-// must never show lesson content the teacher didn't ask for. `isGenerating`
+// Shown in place of the generated lesson on Lesson Planning whenever
+// Generate Lesson hasn't actually been clicked yet — the page must never
+// show lesson content the teacher didn't ask for. `isGenerating`
 // swaps in a brief, lightweight "in progress" message (mirroring the same
 // plain-text convention "Regenerate Questions" uses on the dashboard)
 // between the click and the content actually appearing.
@@ -2132,9 +2188,8 @@ function LessonWorkspacePlaceholder({ isGenerating }: { isGenerating: boolean })
   )
 }
 
-// Lifted to App so "See AI Suggestions" can switch whichever LessonPlanningPanel
-// instance is currently mounted (Lesson Planning vs. Lesson Workspace) over
-// to its AI Chat tab, scoped to the section the teacher just clicked.
+// Lifted to App so "See AI Suggestions" can switch the LessonPlanningPanel
+// over to its AI Chat tab, scoped to the section the teacher just clicked.
 type PlanningPanelProps = {
   planningTab: PlanningTab
   setPlanningTab: (tab: PlanningTab) => void
@@ -2191,12 +2246,10 @@ type LessonWorkspaceCanvasProps = {
 }
 
 // The generated lesson itself — tabs, sections, Edit Lesson, and the
-// contextual AI interactions. Lifted out of any one page so it can mount
-// in two places (embedded on the Lesson Planning page right after Generate
-// Lesson, and on the standalone Lesson Workspace page) while sharing the
-// exact same state, via props all lifted up to App — so navigating between
-// them, or generating a lesson without ever leaving Lesson Planning, never
-// loses a revision, conversation, or manual edit.
+// contextual AI interactions. Mounted on the Lesson Planning page right
+// after Generate Lesson; its state is all lifted up to App via props, so
+// navigating to another page and back never loses a revision,
+// conversation, or manual edit.
 function LessonWorkspaceCanvas({
   editor,
   setPlanningTab,
@@ -2627,41 +2680,6 @@ function LessonWorkspaceCanvas({
   )
 }
 
-// The standalone "Lesson Workspace" nav page: its own Form/AI Chat panel on
-// the left (a separate LessonPlanningPanel instance/state from the one on
-// the Lesson Planning page) plus the same shared canvas on the right.
-function LessonWorkspacePage({
-  onGenerateLessonPlan,
-  lessonGenerated,
-  isGeneratingLesson,
-  canvasProps,
-  planningPanelProps,
-}: {
-  onGenerateLessonPlan: () => void
-  lessonGenerated: boolean
-  isGeneratingLesson: boolean
-  canvasProps: LessonWorkspaceCanvasProps
-  planningPanelProps: PlanningPanelProps
-}) {
-  return (
-    <div className="planning-layout">
-      <LessonPlanningPanel
-        {...planningPanelProps}
-        chatTitle="AI Planning Assistant"
-        chatBadge="Collaborative"
-        chatMessages={planningConversation}
-        onGenerate={onGenerateLessonPlan}
-      />
-
-      {lessonGenerated ? (
-        <LessonWorkspaceCanvas {...canvasProps} />
-      ) : (
-        <LessonWorkspacePlaceholder isGenerating={isGeneratingLesson} />
-      )}
-    </div>
-  )
-}
-
 // Every summary row across all three sections defaults to unselected except
 // the very first Learning Objective idea, so the individual-evidence panel
 // always has something to show rather than opening empty.
@@ -2778,30 +2796,25 @@ const initialDescriptiveFeedback: ChatMessage[] = [
   },
 ]
 
-// Mechanistic: explicitly builds on the Descriptive Model (spec section 5)
-// — the opening line names two specific structure/attraction relationships
-// the student already drew there, and asks how to use BOTH together in the
-// mechanistic drawing — then pushes toward interactions, cause-and-effect,
-// and change over time using arrows/labels, the same visual vocabulary as
-// the Descriptive conversation, never a plain textbook explanation of why
-// soap works.
+// Mechanistic: opens on what's in the student's mechanistic drawing and
+// pushes toward interactions and change (many soap molecules acting on the
+// envelope), then — the last word in the conversation — explicitly sends
+// the student back to their Descriptive Model, naming the specific
+// relationships they represented there (hydrophobic part ↔ fat,
+// hydrophilic part ↔ water), and asks how to use those as the foundation
+// for showing the mechanism with arrows, labels, or positioning. The
+// progression it models: what I represented descriptively helps me reason
+// about and improve my mechanistic model. Scaffolds with questions, never a
+// textbook explanation of why soap works.
 const initialMechanisticFeedback: ChatMessage[] = [
   {
     role: 'ai',
-    text: 'In your descriptive model, you showed that the hydrophobic part of soap is attracted to fat and the hydrophilic part is attracted to water. How could you use both of those relationships to strengthen what you are showing in your mechanistic model?',
+    text: 'I see that you drew the hydrophobic part of the soap next to the virus’s fatty envelope. What could you add to show what happens when many soap molecules interact with the envelope?',
   },
-  {
-    role: 'teacher',
-    text: "I could draw arrows showing the hydrophobic part pointing into the virus's fatty envelope and the hydrophilic part pointing out toward the water.",
-  },
+  { role: 'teacher', text: 'Maybe I could show the fatty layer starting to break apart?' },
   {
     role: 'ai',
-    text: 'That’s a strong way to connect both relationships in one drawing. You’ve drawn the hydrophobic part next to the virus’s fatty envelope — what could you add to show what happens to the envelope when many soap molecules interact with it, not just one?',
-  },
-  { role: 'teacher', text: 'I could show the fatty layer breaking apart.' },
-  {
-    role: 'ai',
-    text: 'How could you use arrows, labels, or changes in the drawing to show that process over time?',
+    text: 'Look back at your Descriptive Model: you showed that the hydrophobic part of soap interacts with fat while the hydrophilic part interacts with water. How could you use arrows, labels, or positioning in your Mechanistic Model to show how these interactions contribute to the change in the fatty envelope?',
   },
 ]
 

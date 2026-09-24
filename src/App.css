@@ -26,17 +26,15 @@
 
 /* Spells "PARTNERS" — one letter per word — so only that letter stands out
    against the rest of the (otherwise unstyled) subtitle text. Color comes
-   from one of the brand-color-* classes below, paired per letter-group with
-   the matching letters in .brand-name, so title and subtitle always use the
-   exact same color values. See the brand-subtitle/brand-name spans in
-   App.tsx. */
+   from one of the brand-color-* classes below. See the brand-subtitle spans
+   in App.tsx. */
 .brand-subtitle-highlight {
   font-weight: 700;
 }
 
-/* Shared color system for "PARTNERS", split into the same four letter-
-   groups in both .brand-name and the subtitle's highlighted letters:
-   PAR = blue, TN = green, ER = purple, S = orange. Blue and green reuse the
+/* Accent colors for the subtitle's highlighted "PARTNERS" letters, split
+   into four letter-groups (the .brand-name wordmark itself is plain dark
+   blue): PAR = blue, TN = green, ER = purple, S = orange. Blue and green reuse the
    app's existing primary/teal accents (same values as .card-label and the
    Mechanistic Model badge); purple and orange are new but pitched at the
    same moderate saturation and contrast level as those two. */
@@ -74,7 +72,7 @@
 .brand-name {
   font-weight: 700;
   font-size: 1.05rem;
-  color: #1f2d3d;
+  color: #00005c;
 }
 
 .menu-button {
@@ -996,6 +994,30 @@ textarea {
 
 .inline-ai-preview .card-label {
   color: #9a6a00;
+}
+
+.inline-ai-preview textarea {
+  margin: 4px 0 10px;
+  line-height: 1.6;
+}
+
+/* Edit / Cancel on the proposed-change card — same pill shape and size as
+   .accept-button beside it, but neutral so Apply to Lesson stays primary. */
+.proposal-edit-button {
+  border: 1px solid #d8e1ea;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.76rem;
+  padding: 5px 12px;
+  cursor: pointer;
+  background: #fff;
+  color: #1f2d3d;
+}
+
+.proposal-edit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .inline-ai-applied-note {
